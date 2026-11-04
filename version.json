@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 25,
-    "version": "2.5",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.5/JellyfinPC.exe",
-    "md5": "5a7b8d08c06d7a2e912b53b001b9b757",
+    "build": 26,
+    "version": "2.6",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.6/JellyfinPC.exe",
+    "md5": "76eb6bfc6e8c3d719a258a838041805a",
     "notes": "Samples und Kurzfilme unter 5 Minuten werden ausgeblendet (abschaltbar im Konto-Menü)."
   },
   "tv": {
