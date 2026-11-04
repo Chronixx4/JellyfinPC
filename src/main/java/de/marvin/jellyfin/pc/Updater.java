@@ -110,10 +110,30 @@ final class Updater {
                 && new File(exeDir(), "JellyfinPC.exe").isFile();
     }
 
-    /** Startet ein Hilfsskript, das die EXE nach dem Beenden austauscht und neu startet. */
+    /** Raeumt die beim letzten Update zur Seite gelegte alte EXE weg. */
+    static void cleanup() {
+        try { new File(exeDir(), "JellyfinPC.exe.old").delete(); } catch (Exception ignored) { }
+    }
+
+    /**
+     * Tauscht die EXE aus und startet sie neu, ohne Terminal-Fenster: Windows erlaubt es, eine laufende EXE umzubenennen.
+     * Also: alte EXE -> .old, neue EXE an ihre Stelle, neue EXE starten. Nur wenn das nicht klappt, springt ein
+     * unsichtbares Hilfsskript (wscript) ein.
+     */
     static void applyAndRestart(File update) throws Exception {
-        File exe = new File(exeDir(), "JellyfinPC.exe");
+        File dir = exeDir();
+        File exe = new File(dir, "JellyfinPC.exe");
+        File old = new File(dir, "JellyfinPC.exe.old");
+        old.delete();
+        if (exe.renameTo(old)) {
+            if (update.renameTo(exe)) {
+                new ProcessBuilder(exe.getAbsolutePath()).directory(dir).start();
+                return;
+            }
+            old.renameTo(exe); // zurueck, wenn das Verschieben scheitert
+        }
         File bat = new File(System.getProperty("java.io.tmpdir"), "jellyfinpc_update.bat");
+        File vbs = new File(System.getProperty("java.io.tmpdir"), "jellyfinpc_update.vbs");
         String script = "@echo off\r\n"
                 + "set /a n=0\r\n"
                 + ":wait\r\n"
@@ -125,10 +145,12 @@ final class Updater {
                 + "start \"\" \"" + exe.getAbsolutePath() + "\"\r\n"
                 + "goto end\r\n"
                 + ":fail\r\n"
-                + "echo Update fehlgeschlagen > \"" + new File(exeDir(), "update-fehler.txt").getAbsolutePath() + "\"\r\n"
+                + "echo Update fehlgeschlagen > \"" + new File(dir, "update-fehler.txt").getAbsolutePath() + "\"\r\n"
                 + ":end\r\n"
                 + "del \"%~f0\"\r\n";
         Files.write(bat.toPath(), script.getBytes(StandardCharsets.ISO_8859_1));
-        new ProcessBuilder("cmd", "/c", "start", "", "/min", bat.getAbsolutePath()).start();
+        String v = "CreateObject(\"WScript.Shell\").Run \"cmd /c \"\"" + bat.getAbsolutePath() + "\"\"\", 0, False\r\n";
+        Files.write(vbs.toPath(), v.getBytes(StandardCharsets.ISO_8859_1));
+        new ProcessBuilder("wscript.exe", "//B", vbs.getAbsolutePath()).start();
     }
 }

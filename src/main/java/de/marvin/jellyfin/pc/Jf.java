@@ -289,6 +289,28 @@ final class Jf {
         return out;
     }
 
+    /** Lokale Trailer eines Titels (Dateien auf dem Server), sonst leer. */
+    ArrayList<JfItem> localTrailers(String id) {
+        try {
+            JSONArray a = new JSONArray(request("GET", "/Users/" + userId + "/Items/" + id + "/LocalTrailers", null));
+            ArrayList<JfItem> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) out.add(JfItem.from(a.getJSONObject(i)));
+            return out;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Ein zufaelliger Film (ersatzweise Serie) aus allen Bibliotheken. */
+    JfItem randomMovie() throws Exception {
+        for (String types : new String[]{"Movie", "Series"}) {
+            ArrayList<JfItem> l = items(getJson("/Items?UserId=" + userId + "&Recursive=true&IncludeItemTypes=" + types
+                    + "&SortBy=Random&Limit=1&Fields=" + FIELDS));
+            if (!l.isEmpty()) return l.get(0);
+        }
+        return null;
+    }
+
     /** Genres einer Bibliothek. */
     ArrayList<String> genres(String parentId) throws Exception {
         JSONObject o = getJson("/Genres?UserId=" + userId + "&ParentId=" + parentId + "&SortBy=SortName");

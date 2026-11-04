@@ -149,6 +149,9 @@ public final class App extends Application {
     public void start(Stage st) {
         Player.warmUp();
         stage = st;
+        for (int n : new int[]{32, 64, 128, 256}) {
+            try { st.getIcons().add(new Image(getClass().getResourceAsStream("/icon-" + n + ".png"))); } catch (Exception ignored) { }
+        }
         Log.i("Start Jellyfin PC, Java " + System.getProperty("java.version"));
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> Log.e("Unbehandelter Fehler in " + t.getName(), e));
         root = new BorderPane();
@@ -655,7 +658,9 @@ public final class App extends Application {
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
         Node badge = Fx.logo(32, A1, A2);
-        HBox bar = new HBox(8, back, badge, logo, spacer(14), home, libs, lists, fav, sp, searchField, user);
+        Button surprise = navButton("🎲 Überrasch mich", false);
+        surprise.setOnAction(e -> surprise());
+        HBox bar = new HBox(8, back, badge, logo, spacer(14), home, libs, lists, fav, surprise, sp, searchField, user);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(10, 22, 10, 18));
         bar.getStyleClass().add("topbar");
@@ -1297,7 +1302,7 @@ public final class App extends Application {
         fin.setToValue(1);
         FadeTransition fout = new FadeTransition(Duration.millis(170), over);
         fout.setToValue(0);
-        DropShadow glow = new DropShadow(26, Color.rgb(120, 100, 255, 0.55));
+        DropShadow glow = new DropShadow(26, isLib ? Color.web(Genres.color(i.name), 0.65) : Color.rgb(120, 100, 255, 0.55));
         // Handler am festen Rahmen: so aendert die Vergroesserung nichts an Treffern und Reihenfolge
         holder.setOnMouseEntered(e -> {
             out.stop(); fout.stop();
@@ -1346,7 +1351,7 @@ public final class App extends Application {
         if (previewHide != null) previewHide.stop();
         if (previewDelay != null) previewDelay.stop();
         if (previewNode != null && previewNode.getUserData() == i) return;
-        previewDelay = new PauseTransition(Duration.millis(560));
+        previewDelay = new PauseTransition(Duration.millis(420));
         previewDelay.setOnFinished(e -> { if (player == null && holder.isHover()) showPreview(holder, i); });
         previewDelay.playFromStart();
     }
@@ -1355,7 +1360,7 @@ public final class App extends Application {
         if (previewDelay != null) previewDelay.stop();
         if (previewNode == null) return;
         if (previewHide != null) previewHide.stop();
-        previewHide = new PauseTransition(Duration.millis(220));
+        previewHide = new PauseTransition(Duration.millis(70));
         previewHide.setOnFinished(e -> { if (previewNode != null && !previewNode.isHover()) hidePreview(); });
         previewHide.playFromStart();
     }
@@ -1371,7 +1376,8 @@ public final class App extends Application {
         StackPane n = previewNode;
         if (n == null) return;
         previewNode = null;
-        FadeTransition ft = new FadeTransition(Duration.millis(130), n);
+        n.setMouseTransparent(true); // blockiert beim Ausblenden keine Nachbarkarten mehr
+        FadeTransition ft = new FadeTransition(Duration.millis(100), n);
         ft.setToValue(0);
         ft.setOnFinished(e -> layer.getChildren().remove(n));
         ft.play();
@@ -1946,6 +1952,7 @@ public final class App extends Application {
     /** Fragt den Update-Server; silent = bei "nichts Neues"/Fehler keine Meldung. */
     private void checkUpdate(boolean silent) {
         Thread t = new Thread(() -> {
+            Updater.cleanup();
             try {
                 Updater.Info i = Updater.check(updateUrl());
                 Platform.runLater(() -> {
@@ -1961,32 +1968,177 @@ public final class App extends Application {
         t.start();
     }
 
-    private void offerUpdate(Updater.Info i) {
-        if (player != null) { toast("Update " + i.version + " verfügbar (Menü → Nach Updates suchen)"); return; }
-        Alert a = new Alert(Alert.AlertType.CONFIRMATION);
-        a.initOwner(stage);
-        a.setTitle("Update verfügbar");
-        a.setHeaderText("Neue Version " + i.version + " (aktuell " + Updater.currentVersion() + ")");
-        a.setContentText((i.notes.isEmpty() ? "" : i.notes + "\n\n") + (Updater.canSelfReplace()
-                ? "Jetzt laden und neu starten?" : "Die Version kann hier nicht automatisch installiert werden:\n" + i.url));
-        ButtonType yes = new ButtonType("Jetzt aktualisieren", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
-        ButtonType no = new ButtonType("Später", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
-        a.getButtonTypes().setAll(Updater.canSelfReplace() ? yes : ButtonType.OK, no);
-        a.showAndWait().ifPresent(b -> { if (b == yes) runUpdate(i); });
+    /** "Überrasch mich": zufälliger Titel mit stummer Szenenvorschau. */
+    private javafx.stage.Stage surpriseStage;
+
+    private void surprise() {
+        if (player != null) return;
+        if (surpriseStage != null) { surpriseStage.toFront(); return; }
+        javafx.stage.Stage dlg = new javafx.stage.Stage(javafx.stage.StageStyle.TRANSPARENT);
+        surpriseStage = dlg;
+        dlg.initOwner(stage);
+        dlg.initModality(javafx.stage.Modality.WINDOW_MODAL);
+        double w = 760, ih = 340;
+        ImageView vid = new ImageView();
+        vid.setFitWidth(w);
+        vid.setFitHeight(ih);
+        vid.setPreserveRatio(false);
+        vid.setOpacity(0);
+        StackPane picHolder = new StackPane();
+        picHolder.setMinSize(w, ih);
+        picHolder.setMaxSize(w, ih);
+        Region fade = new Region();
+        fade.setStyle("-fx-background-color:linear-gradient(to top," + SURFACE + " 0%,rgba(20,26,35,0) 65%);");
+        Label dice = text("🎲", 34, true);
+        StackPane media = new StackPane(picHolder, vid, fade);
+        media.setMinSize(w, ih);
+        media.setMaxSize(w, ih);
+        Rectangle clip = new Rectangle(w, ih + 30);
+        clip.setArcWidth(40);
+        clip.setArcHeight(40);
+        media.setClip(clip);
+        Label title = text("", 26, true);
+        Label meta = muted("", 14);
+        Label ov = muted("", 14);
+        ov.setWrapText(true);
+        ov.setMaxWidth(w - 56);
+        ov.setMaxHeight(64);
+        FlowPane chips = new FlowPane(8, 6);
+        Button play = iconBtn("play", "Abspielen", "btn-primary");
+        Button info = button("Details", "btn-ghost");
+        Button again = button("🎲 Nochmal", "btn-ghost");
+        Button close = button("Schließen", "btn-ghost");
+        HBox btns = new HBox(10, play, info, again, spacer(1), close);
+        HBox.setHgrow(btns.getChildren().get(3), Priority.ALWAYS);
+        btns.setAlignment(Pos.CENTER_LEFT);
+        VBox body = new VBox(10, chips, title, meta, ov, btns);
+        body.setPadding(new Insets(0, 28, 26, 28));
+        VBox box = new VBox(media, body);
+        VBox.setMargin(body, new Insets(-52, 0, 0, 0));
+        box.setPrefWidth(w);
+        box.setMaxWidth(w);
+        box.setStyle("-fx-background-color:" + SURFACE + ";-fx-background-radius:22;-fx-border-color:rgba(255,255,255,0.10);-fx-border-radius:22;");
+        box.setEffect(new DropShadow(36, Color.rgb(0, 0, 0, 0.75)));
+        StackPane wrap = new StackPane(box);
+        wrap.setPadding(new Insets(24));
+        wrap.setStyle("-fx-background-color:transparent;");
+        javafx.scene.Scene sc = new javafx.scene.Scene(wrap);
+        sc.setFill(Color.TRANSPARENT);
+        sc.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        dlg.setScene(sc);
+        JfItem[] cur = {null};
+        long[] gen = {0};
+        Runnable[] roll = new Runnable[1];
+        roll[0] = () -> {
+            long my = ++gen[0];
+            HeroVideo.stop();
+            vid.setOpacity(0);
+            title.setText("🎲 …");
+            bg(() -> jf.randomMovie(), it -> {
+                if (my != gen[0] || it == null) { if (it == null) title.setText("Nichts gefunden"); return; }
+                cur[0] = it;
+                title.setText(it.name);
+                StringBuilder m = new StringBuilder();
+                if (it.year > 0) m.append(it.year).append("   ");
+                if (!it.runtime().isEmpty()) m.append(it.runtime()).append("   ");
+                if (it.rating > 0) m.append("★ ").append(String.format("%.1f", it.rating));
+                meta.setText(m.toString().trim());
+                ov.setText(it.overview);
+                chips.getChildren().clear();
+                for (String g : it.genres.isEmpty() ? new String[0] : it.genres.split(" · ")) {
+                    String gc = Genres.color(g.trim());
+                    Label gl = text(g.trim(), 12, true);
+                    gl.setStyle(gl.getStyle() + "-fx-text-fill:" + gc + ";-fx-background-color:" + css(Color.web(gc), 0.16)
+                            + ";-fx-border-color:" + css(Color.web(gc), 0.55) + ";-fx-border-radius:999;-fx-background-radius:999;-fx-padding:3 11 3 11;");
+                    chips.getChildren().add(gl);
+                }
+                picHolder.getChildren().setAll(picture(jf.backdrop(it), w, ih, 0, 0.2));
+                if (heroVideoOn && it.isPlayable() && it.runTicks > 0) {
+                    long start = (long) (it.runTicks / 10000000L * (0.15 + 0.5 * Math.random()));
+                    PauseTransition wt = new PauseTransition(Duration.millis(600));
+                    wt.setOnFinished(ev -> { if (my == gen[0] && dlg.isShowing()) HeroVideo.start(vid, jf.directUrl(it), start); });
+                    wt.play();
+                }
+            });
+        };
+        play.setOnAction(e -> { JfItem it = cur[0]; if (it != null) { dlg.close(); playOrNext(it); } });
+        info.setOnAction(e -> { JfItem it = cur[0]; if (it != null) { dlg.close(); go(() -> detail(it.id)); } });
+        again.setOnAction(e -> roll[0].run());
+        close.setOnAction(e -> dlg.close());
+        sc.setOnKeyPressed(e -> { if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) dlg.close(); });
+        dlg.setOnHidden(e -> { gen[0]++; surpriseStage = null; HeroVideo.stop(); });
+        dlg.show();
+        roll[0].run();
     }
 
-    private void runUpdate(Updater.Info i) {
-        toast("Update wird geladen …");
+    private void offerUpdate(Updater.Info i) {
+        if (player != null) { toast("Update " + i.version + " verfügbar (Menü → Nach Updates suchen)"); return; }
+        javafx.stage.Stage dlg = new javafx.stage.Stage(javafx.stage.StageStyle.TRANSPARENT);
+        dlg.initOwner(stage);
+        dlg.initModality(javafx.stage.Modality.WINDOW_MODAL);
+        dlg.setTitle("Update verfügbar");
+        boolean self = Updater.canSelfReplace();
+        Label icon = text("⬆", 26, true);
+        icon.setTextFill(Color.WHITE);
+        icon.setStyle(icon.getStyle() + "-fx-background-radius:16;-fx-min-width:52;-fx-min-height:52;-fx-alignment:center;-fx-background-color:linear-gradient(to bottom right," + A1 + "," + A2 + ");");
+        Label title = text("Update verfügbar", 22, true);
+        Label ver = muted("Version " + Updater.currentVersion() + "  →  " + i.version, 14);
+        VBox head = new VBox(2, title, ver);
+        HBox top = new HBox(16, icon, head);
+        top.setAlignment(Pos.CENTER_LEFT);
+        Label notes = muted(i.notes.isEmpty() ? "Eine neue Version steht bereit." : i.notes, 14);
+        notes.setWrapText(true);
+        notes.setMaxWidth(380);
+        if (!self) notes.setText(notes.getText() + "\n\nHier nicht automatisch installierbar:\n" + i.url);
+        javafx.scene.control.ProgressBar bar = new javafx.scene.control.ProgressBar(0);
+        bar.setMaxWidth(Double.MAX_VALUE);
+        bar.setStyle("-fx-accent:" + A1 + ";");
+        Label status = muted("", 13);
+        VBox prog = new VBox(8, bar, status);
+        prog.setVisible(false);
+        prog.setManaged(false);
+        Button later = button("Später", "btn-ghost");
+        Button go = button(self ? "Jetzt aktualisieren" : "OK", "btn-primary");
+        HBox btns = new HBox(10, later, go);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+        VBox box = new VBox(18, top, notes, prog, btns);
+        box.setPadding(new Insets(26));
+        box.setPrefWidth(440);
+        box.setStyle("-fx-background-color:linear-gradient(to bottom right," + SURFACE2 + "," + BG + ");-fx-background-radius:22;"
+                + "-fx-border-color:rgba(255,255,255,0.10);-fx-border-radius:22;");
+        StackPane wrap = new StackPane(box);
+        wrap.setPadding(new Insets(22));
+        wrap.setStyle("-fx-background-color:transparent;");
+        box.setEffect(new DropShadow(30, Color.rgb(0, 0, 0, 0.7)));
+        javafx.scene.Scene sc = new javafx.scene.Scene(wrap);
+        sc.setFill(Color.TRANSPARENT);
+        sc.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        dlg.setScene(sc);
+        later.setOnAction(e -> dlg.close());
+        sc.setOnKeyPressed(e -> { if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE && later.isVisible()) dlg.close(); });
+        go.setOnAction(e -> {
+            if (!self) { dlg.close(); return; }
+            later.setDisable(true);
+            go.setDisable(true);
+            prog.setVisible(true);
+            prog.setManaged(true);
+            status.setText("Wird geladen …");
+            runUpdate(i, bar, status);
+        });
+        dlg.show();
+    }
+
+    private void runUpdate(Updater.Info i, javafx.scene.control.ProgressBar bar, Label status) {
         Thread t = new Thread(() -> {
             try {
-                int[] last = {-10};
-                java.io.File f = Updater.download(i, p -> {
-                    int pc = (int) (p * 100);
-                    if (pc >= last[0] + 10) { last[0] = pc; Platform.runLater(() -> toast("Update wird geladen … " + pc + " %")); }
-                });
+                java.io.File f = Updater.download(i, p -> Platform.runLater(() -> {
+                    bar.setProgress(p);
+                    status.setText("Wird geladen … " + (int) (p * 100) + " %");
+                }));
                 Platform.runLater(() -> {
-                    toast("Update geladen – starte neu …");
-                    PauseTransition w = new PauseTransition(Duration.millis(900));
+                    bar.setProgress(1);
+                    status.setText("Fertig – App startet neu …");
+                    PauseTransition w = new PauseTransition(Duration.millis(700));
                     w.setOnFinished(e -> {
                         try {
                             Updater.applyAndRestart(f);
@@ -1994,14 +2146,14 @@ public final class App extends Application {
                             System.exit(0);
                         } catch (Exception ex) {
                             Log.e("Update starten", ex);
-                            toast("Update ging nicht: " + ex.getMessage());
+                            status.setText("Update ging nicht: " + ex.getMessage());
                         }
                     });
                     w.play();
                 });
             } catch (Exception e) {
                 Log.e("Update laden", e);
-                Platform.runLater(() -> toast("Update fehlgeschlagen: " + e.getMessage()));
+                Platform.runLater(() -> status.setText("Update fehlgeschlagen: " + e.getMessage()));
             }
         }, "update-download");
         t.setDaemon(true);
@@ -2459,7 +2611,17 @@ public final class App extends Application {
                 badges.getChildren().add(bl);
             }
             if (!badges.getChildren().isEmpty()) info.getChildren().add(badges);
-            if (!it.genres.isEmpty()) info.getChildren().add(muted(it.genres, 14));
+            if (!it.genres.isEmpty()) {
+                HBox gchips = new HBox(8);
+                for (String g : it.genres.split(" · ")) {
+                    String gc = Genres.color(g.trim());
+                    Label gl = text(g.trim(), 12, true);
+                    gl.setStyle(gl.getStyle() + "-fx-text-fill:" + gc + ";-fx-background-color:" + css(Color.web(gc), 0.16)
+                            + ";-fx-border-color:" + css(Color.web(gc), 0.55) + ";-fx-border-radius:999;-fx-background-radius:999;-fx-padding:3 11 3 11;");
+                    gchips.getChildren().add(gl);
+                }
+                info.getChildren().add(gchips);
+            }
             Label ov = text(it.overview, 15, false);
             ov.setStyle(ov.getStyle() + "-fx-text-fill:#cfd8e1;-fx-line-spacing:3;");
             info.getChildren().add(ov);
@@ -2499,6 +2661,15 @@ public final class App extends Application {
             Button favB = iconBtn(it.favorite ? "heartOn" : "heart", it.favorite ? "In Merkliste" : "Merkliste", "btn-ghost");
             favB.setOnAction(e -> toggleFavorite(it, favB));
             btns.getChildren().add(favB);
+            if ("Movie".equals(it.type) || "Series".equals(it.type)) {
+                Button tr = iconBtn("play", "Trailer", "btn-ghost");
+                tr.setOnAction(e -> bg(() -> jf.localTrailers(it.id), l -> {
+                    if (!l.isEmpty()) play(l.get(0));
+                    else if (!it.trailerUrl.isEmpty()) { getHostServices().showDocument(it.trailerUrl); toast("Trailer wird im Browser geöffnet"); }
+                    else toast("Kein Trailer hinterlegt");
+                }));
+                btns.getChildren().add(tr);
+            }
             if (it.isPlayable()) btns.getChildren().add(dlButton(it));
             if ("Series".equals(it.type)) {
                 Button dls = button("⬇  Ungesehene laden", "btn-ghost");

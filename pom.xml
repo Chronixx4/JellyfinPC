@@ -39,6 +39,7 @@
         <executions><execution><id>l4j</id><phase>package</phase><goals><goal>launch4j</goal></goals>
           <configuration>
             <headerType>gui</headerType>
+            <icon>src/main/resources/app.ico</icon>
             <outfile>target/JellyfinPC.exe</outfile>
             <jar>target/JellyfinPC.jar</jar>
             <errTitle>Jellyfin PC</errTitle>

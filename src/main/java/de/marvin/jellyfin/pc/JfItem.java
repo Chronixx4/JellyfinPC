@@ -31,7 +31,7 @@ final class JfItem {
     String created = "";
     String playlistItemId = "";
     int unplayed;
-    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "";
+    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "", trailerUrl = "";
     float ratio = 0.667f;
 
     // Medien-Infos (nur wenn MediaStreams mitgeliefert wurden)
@@ -106,6 +106,8 @@ final class JfItem {
             }
             i.genres = b.toString();
         }
+        JSONArray rt = o.optJSONArray("RemoteTrailers");
+        if (rt != null && rt.length() > 0) i.trailerUrl = rt.optJSONObject(0) != null ? rt.optJSONObject(0).optString("Url", "") : "";
         JSONArray ppl = o.optJSONArray("People");
         for (int k = 0; ppl != null && k < ppl.length() && k < 40; k++) {
             JSONObject p = ppl.optJSONObject(k);
