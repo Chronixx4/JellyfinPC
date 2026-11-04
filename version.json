@@ -4,20 +4,20 @@
     "version": "1.9",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v1.9/JellyfinPC.exe",
     "md5": "3694250d41af66c74f06482bf6a213ea",
-    "notes": "Neu: bewegter Hintergrund auf der Startseite und Szenen-Vorschau beim Überfahren der Bibliotheken."
+    "notes": "Neu: Update ohne Terminal-Fenster, App-Symbol, schnelleres Karten-Hover, Trailer-Knopf, Überrasch-mich, Genre-Farben."
   },
   "tv": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": ""
+    "notes": "Neu: Update ohne Terminal-Fenster, App-Symbol, schnelleres Karten-Hover, Trailer-Knopf, Überrasch-mich, Genre-Farben."
   },
   "mobile": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": ""
+    "notes": "Neu: Update ohne Terminal-Fenster, App-Symbol, schnelleres Karten-Hover, Trailer-Knopf, Überrasch-mich, Genre-Farben."
   }
 }
