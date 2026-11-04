@@ -1260,7 +1260,7 @@ public final class App extends Application {
 
     private Node card(JfItem i, boolean landscape) {
         boolean isLib = "CollectionFolder".equals(i.type) || "UserView".equals(i.type);
-        double w = landscape ? 300 : 172, h = landscape ? 169 : 258;
+        double w = (landscape ? 300 : 172) * cardScale, h = (landscape ? 169 : 258) * cardScale;
         String url = landscape ? (isLib ? jf.libraryImage(i) : jf.landscape(i)) : jf.poster(i);
         StackPane img = picture(url, w, h, 16, 0.2);
         if (url == null) img.getChildren().add(text(i.name.isEmpty() ? "?" : i.name.substring(0, 1), 44, true));
@@ -1820,6 +1820,9 @@ public final class App extends Application {
         bg(jf::views, l -> { int k = 0; for (JfItem v : l) { Node c = card(v, true); reveal(c, k++); flow.getChildren().add(c); } });
     }
 
+    private double cardScale = 1;
+    private static final double[] SIZE_SCALE = {0.75, 1.0, 1.3};
+    private static final String[] SIZE_NAMES = {"Klein", "Mittel", "Groß"};
     private static final String[] LIB_VIEWS = {"Poster", "Info", "Liste", "Quer"};
 
     private String metaLine(JfItem i) {
@@ -1946,6 +1949,7 @@ public final class App extends Application {
         int[] gen = {0};
         int[] pg = {0};
         int[] shown = {0};
+        int[] hidden = {0};
         boolean[] mute = {false};
         ArrayList<JfItem> all = new ArrayList<>();
         int[] view = {Math.max(0, java.util.Arrays.asList(LIB_VIEWS).indexOf(settings.get("libView", LIB_VIEWS[0])))};
@@ -1953,6 +1957,10 @@ public final class App extends Application {
         lazyPending.clear();
         Runnable[] pump = new Runnable[1];
         Runnable[] loadRef = new Runnable[1];
+        int[] size = {Math.max(0, Math.min(2, settings.getInt("libSize", 1)))};
+        ComboBox<String> sizeBox = new ComboBox<>();
+        sizeBox.getItems().addAll(SIZE_NAMES);
+        sizeBox.getSelectionModel().select(size[0]);
         Runnable applyGaps = () -> {
             flow.setHgap(view[0] == 2 ? 0 : 20);
             flow.setVgap(view[0] == 2 ? 6 : view[0] == 1 ? 18 : 26);
@@ -1962,6 +1970,7 @@ public final class App extends Application {
             int my = pg[0];
             int end = Math.min(all.size(), shown[0] + 30);
             lazyActive = lazyPending;
+            cardScale = (view[0] == 0 || view[0] == 3) ? SIZE_SCALE[size[0]] : 1;
             try {
                 for (; shown[0] < end; shown[0]++) {
                     JfItem i = all.get(shown[0]);
@@ -1977,6 +1986,7 @@ public final class App extends Application {
                 }
             } finally {
                 lazyActive = null;
+                cardScale = 1;
             }
             Platform.runLater(() -> { flow.applyCss(); flow.layout(); lazyCheck(spRef[0]); });
             if (shown[0] < all.size()) Platform.runLater(() -> { if (my == pg[0]) pump[0].run(); });
@@ -1992,17 +2002,19 @@ public final class App extends Application {
             bg(() -> {
                 ArrayList<JfItem> l = playlist ? jf.playlistItems(parent.id, st, 100)
                         : jf.children(parent.id, st, 100, sb, order, f, g);
-                return new Object[]{l, jf.lastTotal};
+                return new Object[]{l, jf.lastTotal, jf.lastRaw};
             }, r -> {
                 if (myGen != gen[0]) return; // veraltete Antwort nach Filterwechsel
                 @SuppressWarnings("unchecked") ArrayList<JfItem> l = (ArrayList<JfItem>) r[0];
                 all.addAll(l);
-                start[0] += l.size();
+                int raw = (Integer) r[2]; // Seitenschritt zaehlt auch ausgeblendete Samples mit
+                start[0] += raw;
+                hidden[0] += raw - l.size();
                 int total = (Integer) r[1];
-                count.setText(total + " Titel");
+                count.setText((total - hidden[0]) + " Titel");
                 pump[0].run();
                 // alles automatisch nachladen, Seite fuer Seite
-                if (start[0] < total && !l.isEmpty() && root.getCenter() != null && flow.getScene() != null) loadRef[0].run();
+                if (start[0] < total && raw > 0 && root.getCenter() != null && flow.getScene() != null) loadRef[0].run();
             });
         };
         loadRef[0] = load;
@@ -2015,6 +2027,7 @@ public final class App extends Application {
             all.clear();
             shown[0] = 0;
             start[0] = 0;
+            hidden[0] = 0;
             load.run();
         };
         ToggleGroup vg = new ToggleGroup();
@@ -2031,6 +2044,8 @@ public final class App extends Application {
             tb.setOnAction(e -> {
                 if (!tb.isSelected()) { tb.setSelected(true); return; }
                 view[0] = vv;
+                sizeBox.setVisible(vv == 0 || vv == 3);
+                sizeBox.setManaged(vv == 0 || vv == 3);
                 settings.put("libView", LIB_VIEWS[vv]);
                 pg[0]++;
                 flow.getChildren().clear();
@@ -2046,7 +2061,20 @@ public final class App extends Application {
         fav.setOnAction(e -> reset.run());
         Region fill = new Region();
         HBox.setHgrow(fill, Priority.ALWAYS);
-        HBox bar = new HBox(12, title, count, fill, viewBox, sort);
+        sizeBox.setOnAction(e -> {
+            int ix = Math.max(0, sizeBox.getSelectionModel().getSelectedIndex());
+            if (ix == size[0]) return;
+            size[0] = ix;
+            settings.putInt("libSize", ix);
+            pg[0]++;
+            flow.getChildren().clear();
+            lazyPending.clear();
+            shown[0] = 0;
+            pump[0].run();
+        });
+        sizeBox.setVisible(view[0] == 0 || view[0] == 3);
+        sizeBox.setManaged(view[0] == 0 || view[0] == 3);
+        HBox bar = new HBox(12, title, count, fill, viewBox, sizeBox, sort);
         if (!playlist) bar.getChildren().addAll(unseen, fav);
         if (currentList != null) {
             Button del = button("🗑 Liste löschen", "toggle-pill");
@@ -2209,13 +2237,13 @@ public final class App extends Application {
                 if (!local.isEmpty()) { JfItem l = local.get(0); Platform.runLater(() -> play(l)); return; }
                 String target = !it.trailerUrl.isEmpty() ? it.trailerUrl
                         : "ytsearch1:" + it.name + (it.year > 0 ? " (" + it.year + ")" : "") + " offizieller Trailer deutsch";
-                java.util.List<String> urls = Trailers.resolve(target, m -> Platform.runLater(() -> toast(m)));
+                java.util.List<String> urls = Trailers.fetch(target, m -> Platform.runLater(() -> toast(m)));
                 JfItem tr = new JfItem();
                 tr.id = "trailer-" + it.id;
                 tr.name = it.name + " – Trailer";
                 tr.type = "Movie";
                 tr.externalUrl = urls.get(0);
-                tr.externalAudio = urls.size() > 1 ? urls.get(1) : null;
+                tr.externalAudio = urls.size() > 1 ? "file://" + new java.io.File(urls.get(1)).toURI().getRawPath() : null;
                 Platform.runLater(() -> play(tr));
             } catch (Exception ex) {
                 Log.e("Trailer", ex);

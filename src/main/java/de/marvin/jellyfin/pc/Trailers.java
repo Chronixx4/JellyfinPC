@@ -45,34 +45,63 @@ final class Trailers {
         if (!tmp.renameTo(exe)) throw new java.io.IOException("yt-dlp konnte nicht gespeichert werden");
     }
 
-    /** Liefert {videoUrl} oder {videoUrl, audioUrl}. target = YouTube-Adresse oder ytsearch1:-Suche. */
-    static List<String> resolve(String target, Consumer<String> status) throws Exception {
+    /**
+     * Laedt den Trailer in eine lokale Datei (spulbar und ohne Ruckeln) und liefert {Video} oder {Video, Ton} als Pfade.
+     * target = YouTube-Adresse oder ytsearch1:-Suche.
+     */
+    static List<String> fetch(String target, Consumer<String> status) throws Exception {
         if (!exe().isFile() || exe().length() < 1_000_000) download(status);
-        status.accept("Trailer wird gesucht …");
+        File dir = new File(dir(), "trailers");
+        dir.mkdirs();
+        File[] old = dir.listFiles();
+        if (old != null) for (File f : old) f.delete();
+        status.accept("Trailer wird gesucht und geladen …");
         try {
-            return run(target);
+            return grab(target, dir);
         } catch (Exception first) {
             Log.i("yt-dlp: " + first.getMessage() + " - lade neueste Version und versuche es noch einmal");
             download(status);
-            status.accept("Trailer wird gesucht …");
-            return run(target);
+            status.accept("Trailer wird gesucht und geladen …");
+            return grab(target, dir);
         }
     }
 
-    private static List<String> run(String target) throws Exception {
-        ProcessBuilder pb = new ProcessBuilder(exe().getAbsolutePath(), "-g", "--no-playlist", "--no-warnings",
-                "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", target);
-        pb.redirectErrorStream(false);
+    private static List<String> grab(String target, File dir) throws Exception {
+        List<String> out = new ArrayList<>();
+        try {
+            String v = file(target, dir, "bv[height<=1080][ext=mp4]/bv[height<=1080]", "v");
+            String a = file(target, dir, "ba[ext=m4a]/ba", "a");
+            out.add(v);
+            out.add(a);
+        } catch (Exception split) {
+            Log.i("Getrennte Spuren nicht moeglich (" + split.getMessage() + "), nehme Einzeldatei");
+            for (File f : dir.listFiles()) f.delete();
+            out.clear();
+            out.add(file(target, dir, "b[ext=mp4]/b", "s"));
+        }
+        return out;
+    }
+
+    private static String file(String target, File dir, String fmt, String tag) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(exe().getAbsolutePath(), "-q", "--no-warnings", "--no-playlist", "--no-simulate",
+                "--print", "after_move:filepath", "-f", fmt, "-o", new File(dir, "t_" + tag + "_%(id)s.%(ext)s").getAbsolutePath(), target);
         Process p = pb.start();
+        // stderr nebenbei leeren, damit der Prozess nicht blockiert
+        StringBuilder err = new StringBuilder();
+        Thread et = new Thread(() -> {
+            try { err.append(new String(p.getErrorStream().readAllBytes(), StandardCharsets.UTF_8)); } catch (Exception ignored) { }
+        });
+        et.setDaemon(true);
+        et.start();
         String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        String err = new String(p.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-        if (!p.waitFor(90, TimeUnit.SECONDS)) { p.destroyForcibly(); throw new java.io.IOException("Zeitüberschreitung"); }
-        List<String> urls = new ArrayList<>();
-        for (String l : out.split("\\R")) if (l.trim().startsWith("http")) urls.add(l.trim());
-        if (p.exitValue() != 0 || urls.isEmpty()) {
-            String m = err.trim();
+        if (!p.waitFor(240, TimeUnit.SECONDS)) { p.destroyForcibly(); throw new java.io.IOException("Zeitüberschreitung"); }
+        et.join(2000);
+        String last = "";
+        for (String l : out.split("\\R")) if (!l.trim().isEmpty()) last = l.trim();
+        if (p.exitValue() != 0 || last.isEmpty() || !new File(last).isFile()) {
+            String m = err.toString().trim();
             throw new java.io.IOException(m.isEmpty() ? "kein Trailer gefunden" : m.substring(Math.max(0, m.length() - 200)));
         }
-        return urls;
+        return last;
     }
 }

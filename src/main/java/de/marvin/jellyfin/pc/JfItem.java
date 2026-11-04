@@ -31,7 +31,7 @@ final class JfItem {
     String created = "";
     String playlistItemId = "";
     int unplayed;
-    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "", trailerUrl = "", externalUrl, externalAudio;
+    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "", trailerUrl = "", path = "", externalUrl, externalAudio;
     float ratio = 0.667f;
 
     // Medien-Infos (nur wenn MediaStreams mitgeliefert wurden)
@@ -45,6 +45,17 @@ final class JfItem {
     String tpSource;
     int childCount = -1;
 
+    private static final java.util.regex.Pattern SAMPLE_PATH =
+            java.util.regex.Pattern.compile("(?i)(^|[\\\\/._\\s\\[(-])sample([\\\\/._\\s\\])-]|$)");
+
+    /** Sample-Ausschnitte (Datei/Ordner "sample" oder Film unter 3 Minuten mit "sample" im Namen) sollen nicht erscheinen. */
+    boolean isSample() {
+        if (!"Movie".equals(type) && !"Video".equals(type)) return false;
+        if (!path.isEmpty() && SAMPLE_PATH.matcher(path).find()) return true;
+        if (SAMPLE_PATH.matcher(name).find()) return true;
+        return false;
+    }
+
     static JfItem from(JSONObject o) {
         JfItem i = new JfItem();
         i.raw = o;
@@ -52,6 +63,7 @@ final class JfItem {
         i.playlistItemId = o.optString("PlaylistItemId", "");
         i.created = o.optString("DateCreated", "");
         i.name = o.optString("Name");
+        i.path = o.optString("Path", "");
         i.type = o.optString("Type");
         i.overview = o.optString("Overview", "").replace('\n', ' ');
         i.officialRating = o.optString("OfficialRating", "");

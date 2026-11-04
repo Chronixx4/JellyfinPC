@@ -230,17 +230,23 @@ final class Jf {
     // ------------------------------------------------------------ Daten
 
     private static final String FIELDS = "Overview,Genres,PrimaryImageAspectRatio,ParentBackdropItemId,"
-            + "SeriesPrimaryImageTag,ParentThumbImageTag,MediaStreams,DateCreated";
+            + "SeriesPrimaryImageTag,ParentThumbImageTag,MediaStreams,DateCreated,Path";
     private static final String DETAIL_FIELDS = FIELDS + ",MediaSources,People,Chapters,Studios,Taglines";
 
     /** Gesamtzahl der Treffer der letzten Listen-Abfrage (fuer "256 Titel"). */
     volatile int lastTotal;
+    /** Anzahl der vom Server gelieferten Eintraege der letzten Abfrage (vor dem Entfernen von Samples). */
+    volatile int lastRaw;
 
     private ArrayList<JfItem> items(JSONObject o) {
         ArrayList<JfItem> out = new ArrayList<>();
         lastTotal = o.optInt("TotalRecordCount", 0);
         JSONArray a = o.optJSONArray("Items");
-        for (int i = 0; a != null && i < a.length(); i++) out.add(JfItem.from(a.optJSONObject(i)));
+        lastRaw = a == null ? 0 : a.length();
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JfItem it = JfItem.from(a.optJSONObject(i));
+            if (!it.isSample()) out.add(it);
+        }
         return out;
     }
 
@@ -262,7 +268,7 @@ final class Jf {
         JSONArray a = new JSONArray(request("GET", "/Items/Latest?UserId=" + userId + "&ParentId=" + parentId
                 + "&Limit=20&Fields=" + FIELDS, null));
         ArrayList<JfItem> out = new ArrayList<>();
-        for (int i = 0; i < a.length(); i++) out.add(JfItem.from(a.getJSONObject(i)));
+        for (int i = 0; i < a.length(); i++) { JfItem it = JfItem.from(a.getJSONObject(i)); if (!it.isSample()) out.add(it); }
         return out;
     }
 
