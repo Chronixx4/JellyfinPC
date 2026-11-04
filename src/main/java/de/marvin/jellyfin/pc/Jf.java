@@ -245,7 +245,7 @@ final class Jf {
         lastRaw = a == null ? 0 : a.length();
         for (int i = 0; a != null && i < a.length(); i++) {
             JfItem it = JfItem.from(a.optJSONObject(i));
-            if (!it.isSample()) out.add(it);
+            if (!it.isSample() && !"Folder".equals(it.type)) out.add(it); // lose Ordner nie anzeigen
         }
         return out;
     }

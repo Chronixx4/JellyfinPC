@@ -1536,11 +1536,11 @@ public final class App extends Application {
         } catch (Exception e) { return false; }
     }
 
-    private ImageView veil;
+    private Node veil;
 
     /** Blendet das Uebergangsbild aus; die fertige Seite (falls angegeben) blendet gleichzeitig ein. */
     private void releaseVeil(Node page) {
-        ImageView v = veil;
+        Node v = veil;
         veil = null;
         if (page != null && v != null && !REDUCE) {
             page.setOpacity(0);
@@ -1560,30 +1560,42 @@ public final class App extends Application {
         boolean detailType = java.util.Set.of("Movie", "Series", "Episode", "Video", "MusicVideo", "Season").contains(i.type);
         if (REDUCE || !detailType || src.getScene() == null || layer.getWidth() < 100) { open(i); return; }
         try {
+            // Scharfer Uebergang: eine glatte Flaeche waechst aus der Karte auf Fenstergroesse (kein hochgezogenes Vorschaubild mehr)
             javafx.geometry.Bounds b = src.localToScene(src.getBoundsInLocal());
-            javafx.scene.SnapshotParameters sp0 = new javafx.scene.SnapshotParameters();
-            sp0.setFill(Color.TRANSPARENT);
-            javafx.scene.image.WritableImage wi = src.snapshot(sp0, null);
-            ImageView iv = new ImageView(wi);
-            iv.setPreserveRatio(false);
-            iv.setMouseTransparent(true);
-            iv.setManaged(false);
-            iv.setFitWidth(b.getWidth());
-            iv.setFitHeight(b.getHeight());
-            iv.setLayoutX(b.getMinX());
-            iv.setLayoutY(b.getMinY());
+            Rectangle rect = new Rectangle(b.getMinX(), b.getMinY(), b.getWidth(), b.getHeight());
+            rect.setArcWidth(32);
+            rect.setArcHeight(32);
+            rect.setFill(Color.web(SURFACE));
+            rect.setManaged(false);
+            rect.setMouseTransparent(true);
+            ProgressIndicator pi = new ProgressIndicator();
+            pi.setMaxSize(46, 46);
+            pi.setStyle("-fx-progress-color: " + A1 + ";");
+            pi.setManaged(false);
+            pi.setOpacity(0);
+            pi.setMouseTransparent(true);
+            pi.setLayoutX(layer.getWidth() / 2 - 23);
+            pi.setLayoutY(layer.getHeight() / 2 - 23);
+            StackPane vp = new StackPane(rect, pi);
+            vp.setManaged(false);
+            vp.setMouseTransparent(true);
+            vp.setPickOnBounds(false);
             releaseVeil(null);
-            layer.getChildren().add(iv);
-            veil = iv;
-            // aufziehen und stehen bleiben, bis die neue Seite fertig ist (dann weich ueberblenden)
-            Timeline tl = new Timeline(new KeyFrame(Duration.millis(420),
-                    new KeyValue(iv.layoutXProperty(), 0, Interpolator.EASE_OUT),
-                    new KeyValue(iv.layoutYProperty(), 0, Interpolator.EASE_OUT),
-                    new KeyValue(iv.fitWidthProperty(), layer.getWidth(), Interpolator.EASE_OUT),
-                    new KeyValue(iv.fitHeightProperty(), layer.getHeight(), Interpolator.EASE_OUT),
-                    new KeyValue(iv.opacityProperty(), 0.55, Interpolator.EASE_OUT)));
+            layer.getChildren().add(vp);
+            veil = vp;
+            Timeline tl = new Timeline(new KeyFrame(Duration.millis(380),
+                    new KeyValue(rect.xProperty(), 0, Interpolator.EASE_BOTH),
+                    new KeyValue(rect.yProperty(), 0, Interpolator.EASE_BOTH),
+                    new KeyValue(rect.widthProperty(), layer.getWidth(), Interpolator.EASE_BOTH),
+                    new KeyValue(rect.heightProperty(), layer.getHeight(), Interpolator.EASE_BOTH),
+                    new KeyValue(rect.arcWidthProperty(), 0, Interpolator.EASE_BOTH),
+                    new KeyValue(rect.arcHeightProperty(), 0, Interpolator.EASE_BOTH)));
             tl.play();
-            PauseTransition safety = new PauseTransition(Duration.seconds(5));
+            FadeTransition pif = new FadeTransition(Duration.millis(300), pi);
+            pif.setDelay(Duration.millis(450)); // Ladekreis nur zeigen, wenn es laenger dauert
+            pif.setToValue(1);
+            pif.play();
+            PauseTransition safety = new PauseTransition(Duration.seconds(8));
             safety.setOnFinished(e -> releaseVeil(null));
             safety.play();
         } catch (Throwable t) {
