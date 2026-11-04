@@ -49,11 +49,14 @@ final class JfItem {
             java.util.regex.Pattern.compile("(?i)(^|[\\\\/._\\s\\[(-])sample([\\\\/._\\s\\])-]|$)");
 
     /** Sample-Ausschnitte (Datei/Ordner "sample" oder Film unter 3 Minuten mit "sample" im Namen) sollen nicht erscheinen. */
+    static volatile boolean hideShort = true;
+
     boolean isSample() {
         if (!"Movie".equals(type) && !"Video".equals(type)) return false;
         if (!path.isEmpty() && SAMPLE_PATH.matcher(path).find()) return true;
         if (SAMPLE_PATH.matcher(name).find()) return true;
-        return false;
+        // Sample-Ausschnitte sind meist kurz (ca. 1-3 Minuten); abschaltbar im Konto-Menue
+        return hideShort && "Movie".equals(type) && runTicks > 0 && runTicks < 5L * 600000000L;
     }
 
     static JfItem from(JSONObject o) {

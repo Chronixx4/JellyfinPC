@@ -164,6 +164,7 @@ public final class App extends Application {
         layer.setPickOnBounds(false);
         shell = new StackPane(root, layer, toast);
         REDUCE = settings.getBoolean("reduce", false);
+        JfItem.hideShort = settings.getBoolean("hideShort", true);
         heroVideoOn = settings.getBoolean("heroVideo", true);
         applyTheme(settings.get("theme", "Violett"), false);
         Scene sc = new Scene(shell, 1360, 840);
@@ -639,6 +640,14 @@ public final class App extends Application {
             settings.put("updateUrl", v.isEmpty() ? Updater.DEFAULT_URL : v);
             toast("Update-Adresse gespeichert");
         }));
+        CheckMenuItem shortItem = new CheckMenuItem("Samples und Kurzfilme (< 5 Min) ausblenden");
+        shortItem.setSelected(JfItem.hideShort);
+        shortItem.setOnAction(e -> {
+            JfItem.hideShort = shortItem.isSelected();
+            settings.putBoolean("hideShort", JfItem.hideShort);
+            invalidateCaches();
+            toast("Gilt ab dem nächsten Öffnen einer Seite");
+        });
         CheckMenuItem updAuto = new CheckMenuItem("Beim Start nach Updates suchen");
         updAuto.setSelected(settings.getBoolean("updateAuto", true));
         updAuto.setOnAction(e -> settings.putBoolean("updateAuto", updAuto.isSelected()));
@@ -693,7 +702,7 @@ public final class App extends Application {
             if (setAutostart(on)) { settings.putBoolean("autostart", on); toast(on ? "Startet künftig mit Windows" : "Autostart aus"); }
             else { auto.setSelected(!on); toast("Autostart ging nicht (nur mit der EXE möglich)"); }
         });
-        user.getItems().addAll(statsItem, dlItem, syncItem, new SeparatorMenuItem(), switchP, addP, pinP, new SeparatorMenuItem(), themeMenu, reduce, hv, auto, new SeparatorMenuItem(), updItem, updAuto, updUrl, new SeparatorMenuItem(), reload, server, new SeparatorMenuItem(), out);
+        user.getItems().addAll(statsItem, dlItem, syncItem, new SeparatorMenuItem(), switchP, addP, pinP, new SeparatorMenuItem(), themeMenu, reduce, hv, auto, shortItem, new SeparatorMenuItem(), updItem, updAuto, updUrl, new SeparatorMenuItem(), reload, server, new SeparatorMenuItem(), out);
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
         Node badge = Fx.logo(32, A1, A2);
