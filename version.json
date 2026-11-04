@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 21,
-    "version": "2.1",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.1/JellyfinPC.exe",
-    "md5": "c8c6aee1b27a111f9a8eea6409654ad4",
+    "build": 22,
+    "version": "2.2",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.2/JellyfinPC.exe",
+    "md5": "4648757fcdc3b925e0aa5fb0f2fcf6f2",
     "notes": "Fix: Startseite lud endlos nach 2.0."
   },
   "tv": {
