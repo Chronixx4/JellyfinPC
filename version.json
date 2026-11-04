@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 26,
-    "version": "2.6",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.6/JellyfinPC.exe",
-    "md5": "76eb6bfc6e8c3d719a258a838041805a",
+    "build": 27,
+    "version": "2.7",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.7/JellyfinPC.exe",
+    "md5": "e87b7ff0f03956365ea12c9f4d6b057d",
     "notes": "Fix: Bibliotheken zeigen nur noch Filme und Serien, keine Ordner mit Sample- oder Proof-Dateien."
   },
   "tv": {
