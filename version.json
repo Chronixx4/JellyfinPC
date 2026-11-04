@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 19,
-    "version": "1.9",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v1.9/JellyfinPC.exe",
-    "md5": "3694250d41af66c74f06482bf6a213ea",
+    "build": 20,
+    "version": "2.0",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.0/JellyfinPC.exe",
+    "md5": "5a148de066234183af64863594313fff",
     "notes": "Neu: Update ohne Terminal-Fenster, App-Symbol, schnelleres Karten-Hover, Trailer-Knopf, Überrasch-mich, Genre-Farben."
   },
   "tv": {
