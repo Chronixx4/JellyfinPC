@@ -1,0 +1,11 @@
+{
+  "windows": {
+    "build": 17,
+    "version": "1.7",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v1.7/JellyfinPC.exe",
+    "md5": "a68eeeeb1c5e4b344b0b0f5e9ce09341",
+    "notes": "Auto-Update läuft jetzt über GitHub."
+  },
+  "tv":     { "build": 0, "version": "", "url": "", "md5": "", "notes": "" },
+  "mobile": { "build": 0, "version": "", "url": "", "md5": "", "notes": "" }
+}

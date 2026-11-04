@@ -1,0 +1,9 @@
+target/
+dist/
+*.exe
+*.jar
+*.log
+*.tmp
+*.update
+# libVLC wird beim Bauen als Ressource eingebettet, nicht im Git
+src/main/resources/vlc-win64.zip
