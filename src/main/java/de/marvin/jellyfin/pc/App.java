@@ -463,6 +463,26 @@ public final class App extends Application {
 
     // ------------------------------------------------------------ Bilder
 
+    /** Waehrend Karten fuer lange Listen gebaut werden: Bilder erst laden, wenn sie in die Naehe des Sichtbereichs kommen. */
+    private java.util.List<StackPane> lazyActive;
+    private final java.util.ArrayList<StackPane> lazyPending = new java.util.ArrayList<>();
+
+    private void lazyCheck(ScrollPane sp) {
+        if (lazyPending.isEmpty() || sp == null || sp.getScene() == null) return;
+        javafx.geometry.Bounds vp = sp.localToScene(sp.getBoundsInLocal());
+        java.util.Iterator<StackPane> it = lazyPending.iterator();
+        while (it.hasNext()) {
+            StackPane b = it.next();
+            if (b.getScene() == null) { it.remove(); continue; }
+            javafx.geometry.Bounds bb = b.localToScene(b.getBoundsInLocal());
+            if (bb.getMaxY() > vp.getMinY() - 1000 && bb.getMinY() < vp.getMaxY() + 1000) {
+                it.remove();
+                Object r = b.getProperties().remove("lazyLoad");
+                if (r instanceof Runnable) ((Runnable) r).run();
+            }
+        }
+    }
+
     /** Bilder-Zwischenspeicher: beim Zurueckwechseln erscheinen Poster sofort, ohne neu vom Server zu laden. */
     private static final java.util.Map<String, Image> IMG_CACHE = new java.util.LinkedHashMap<>(256, 0.75f, true) {
         @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Image> e) { return size() > 140; }
@@ -491,6 +511,7 @@ public final class App extends Application {
         // nur laufen lassen, solange die Karte wirklich im Fenster haengt (sonst bleibt die Animation ewig am Leben)
         box.sceneProperty().addListener((o, a, b) -> { if (b == null) pulse.stop(); else if (shimmer.getParent() != null) pulse.play(); });
         box.getChildren().add(shimmer);
+        Runnable startLoad = () -> {
         double reqW = Math.min(w * 2, 1600);
         String ckey = url + "@" + (int) reqW;
         Image cached = IMG_CACHE.get(ckey);
@@ -532,6 +553,9 @@ public final class App extends Application {
         };
         if (img.getProgress() >= 1) ready.run();
         else img.progressProperty().addListener((o, a, b) -> { if (b.doubleValue() >= 1) ready.run(); });
+        };
+        if (lazyActive != null) { box.getProperties().put("lazyLoad", startLoad); lazyActive.add(box); }
+        else startLoad.run();
         return box;
     }
 
@@ -1796,6 +1820,104 @@ public final class App extends Application {
         bg(jf::views, l -> { int k = 0; for (JfItem v : l) { Node c = card(v, true); reveal(c, k++); flow.getChildren().add(c); } });
     }
 
+    private static final String[] LIB_VIEWS = {"Poster", "Info", "Liste", "Quer"};
+
+    private String metaLine(JfItem i) {
+        StringBuilder m = new StringBuilder();
+        if (i.year > 0) m.append(i.year).append("   ");
+        if (!i.runtime().isEmpty()) m.append(i.runtime()).append("   ");
+        if (i.rating > 0) m.append("★ ").append(String.format("%.1f", i.rating));
+        return m.toString().trim();
+    }
+
+    private HBox genreChips(JfItem i, int max) {
+        HBox box = new HBox(6);
+        box.setAlignment(Pos.CENTER_LEFT);
+        if (i.genres.isEmpty()) return box;
+        int n = 0;
+        for (String g : i.genres.split(" · ")) {
+            if (n++ >= max) break;
+            String gc = Genres.color(g.trim());
+            Label gl = text(g.trim(), 11, true);
+            gl.setWrapText(false);
+            gl.setStyle(gl.getStyle() + "-fx-text-fill:" + gc + ";-fx-background-color:" + css(Color.web(gc), 0.16)
+                    + ";-fx-background-radius:999;-fx-padding:2 9 2 9;");
+            box.getChildren().add(gl);
+        }
+        return box;
+    }
+
+    /** Info-Karte: Poster links, rechts Titel, Daten, Genres, Kurzbeschreibung und Knoepfe. */
+    private HBox infoCard(JfItem i) {
+        double pw = 118, ph = 177;
+        StackPane pic = picture(jf.poster(i), pw, ph, 12, 0.2);
+        Label t = text("Episode".equals(i.type) && !i.seriesName.isEmpty() ? i.seriesName : i.name, 17, true);
+        t.setWrapText(false);
+        t.setTextOverrun(OverrunStyle.ELLIPSIS);
+        Label m = muted(metaLine(i), 13);
+        Label ov = muted(i.overview, 13);
+        ov.setWrapText(true);
+        ov.setMaxHeight(58);
+        ov.setStyle(ov.getStyle() + "-fx-text-fill:#aab6c3;");
+        Button play = button("▶", "btn-primary");
+        play.setStyle("-fx-padding: 6 14 6 16; -fx-font-size: 13px;");
+        play.setOnAction(e -> playOrNext(i));
+        play.setVisible(i.isPlayable() || "Series".equals(i.type));
+        Button fav = button(i.favorite ? "♥" : "♡", "icon-btn");
+        fav.setOnAction(e -> { toggleFavorite(i, null); fav.setText(i.favorite ? "♡" : "♥"); });
+        HBox btns = new HBox(8, play, fav);
+        btns.setAlignment(Pos.CENTER_LEFT);
+        VBox txt = new VBox(7, t, m, genreChips(i, 3), ov, btns);
+        txt.setAlignment(Pos.TOP_LEFT);
+        HBox.setHgrow(txt, Priority.ALWAYS);
+        HBox card = new HBox(16, pic, txt);
+        card.setPadding(new Insets(12));
+        card.setPrefWidth(520);
+        card.setMinWidth(520);
+        card.setMaxWidth(520);
+        String base = "-fx-background-radius:16;-fx-background-color:";
+        card.setStyle(base + SURFACE + ";");
+        card.setCursor(Cursor.HAND);
+        card.setOnMouseEntered(e -> card.setStyle(base + SURFACE2 + ";-fx-effect:dropshadow(gaussian," + css(Color.web(A1), 0.35) + ",18,0.1,0,2);"));
+        card.setOnMouseExited(e -> card.setStyle(base + SURFACE + ";"));
+        card.setOnMouseClicked(e -> { if (e.getButton() == MouseButton.PRIMARY && !(e.getTarget() instanceof Button)
+                && !(e.getTarget() instanceof Label && ((Label) e.getTarget()).getParent() instanceof Button)) openFrom(card, i); });
+        card.setOnContextMenuRequested(e -> { itemMenu(i).show(card, e.getScreenX(), e.getScreenY()); e.consume(); });
+        return card;
+    }
+
+    /** Listenzeile: kleines Poster, Titel, Jahr, Laufzeit, Wertung, Genres. */
+    private HBox listRow(JfItem i) {
+        StackPane pic = picture(jf.poster(i), 44, 66, 8, 0.2);
+        Label t = text("Episode".equals(i.type) && !i.seriesName.isEmpty() ? i.seriesName : i.name, 15, true);
+        t.setWrapText(false);
+        t.setTextOverrun(OverrunStyle.ELLIPSIS);
+        t.setPrefWidth(340);
+        t.setMinWidth(340);
+        Label y = muted(i.year > 0 ? String.valueOf(i.year) : "", 13);
+        y.setMinWidth(54);
+        Label rt = muted(i.runtime(), 13);
+        rt.setMinWidth(80);
+        Label r = muted(i.rating > 0 ? "★ " + String.format("%.1f", i.rating) : "", 13);
+        r.setMinWidth(54);
+        Region fill = new Region();
+        HBox.setHgrow(fill, Priority.ALWAYS);
+        Button fav = button(i.favorite ? "♥" : "♡", "icon-btn");
+        fav.setOnAction(e -> { toggleFavorite(i, null); fav.setText(i.favorite ? "♡" : "♥"); });
+        HBox row = new HBox(16, pic, t, y, rt, r, genreChips(i, 3), fill, fav);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(6, 14, 6, 10));
+        String base = "-fx-background-radius:12;-fx-background-color:";
+        row.setStyle(base + "rgba(255,255,255,0.04);");
+        row.setCursor(Cursor.HAND);
+        row.setOnMouseEntered(e -> row.setStyle(base + "rgba(255,255,255,0.10);"));
+        row.setOnMouseExited(e -> row.setStyle(base + "rgba(255,255,255,0.04);"));
+        row.setOnMouseClicked(e -> { if (e.getButton() == MouseButton.PRIMARY && !(e.getTarget() instanceof Button)
+                && !(e.getTarget() instanceof Label && ((Label) e.getTarget()).getParent() instanceof Button)) openFrom(row, i); });
+        row.setOnContextMenuRequested(e -> { itemMenu(i).show(row, e.getScreenX(), e.getScreenY()); e.consume(); });
+        return row;
+    }
+
     private void listing(JfItem parent) {
         chrome("libs");
         currentList = ("Playlist".equals(parent.type) || "BoxSet".equals(parent.type)) ? parent : null;
@@ -1815,7 +1937,6 @@ public final class App extends Application {
         ComboBox<String> genre = new ComboBox<>();
         genre.setPromptText("Genre");
         genre.setVisibleRowCount(14);
-        Button more = button("Mehr laden", "btn-ghost");
         Button rnd = button("🎲 Zufall", "toggle-pill");
         rnd.setOnAction(e -> bg(() -> {
             ArrayList<JfItem> l = jf.children(parent.id, 0, 1, "Random", "Ascending");
@@ -1823,7 +1944,43 @@ public final class App extends Application {
         }, r -> { if (r != null) open(r); }));
         int[] start = {0};
         int[] gen = {0};
+        int[] pg = {0};
+        int[] shown = {0};
         boolean[] mute = {false};
+        ArrayList<JfItem> all = new ArrayList<>();
+        int[] view = {Math.max(0, java.util.Arrays.asList(LIB_VIEWS).indexOf(settings.get("libView", LIB_VIEWS[0])))};
+        ScrollPane[] spRef = new ScrollPane[1];
+        lazyPending.clear();
+        Runnable[] pump = new Runnable[1];
+        Runnable[] loadRef = new Runnable[1];
+        Runnable applyGaps = () -> {
+            flow.setHgap(view[0] == 2 ? 0 : 20);
+            flow.setVgap(view[0] == 2 ? 6 : view[0] == 1 ? 18 : 26);
+        };
+        applyGaps.run();
+        pump[0] = () -> {
+            int my = pg[0];
+            int end = Math.min(all.size(), shown[0] + 30);
+            lazyActive = lazyPending;
+            try {
+                for (; shown[0] < end; shown[0]++) {
+                    JfItem i = all.get(shown[0]);
+                    Node c;
+                    switch (view[0]) {
+                        case 1: c = infoCard(i); break;
+                        case 2: { HBox r = listRow(i); r.prefWidthProperty().bind(flow.widthProperty().subtract(96)); c = r; break; }
+                        case 3: c = card(i, true); break;
+                        default: c = card(i, false);
+                    }
+                    if (shown[0] < 24) reveal(c, shown[0]);
+                    flow.getChildren().add(c);
+                }
+            } finally {
+                lazyActive = null;
+            }
+            Platform.runLater(() -> { flow.applyCss(); flow.layout(); lazyCheck(spRef[0]); });
+            if (shown[0] < all.size()) Platform.runLater(() -> { if (my == pg[0]) pump[0].run(); });
+        };
         Runnable load = () -> {
             int idx = Math.max(0, sort.getSelectionModel().getSelectedIndex());
             String sb = new String[]{"SortName", "DateCreated", "ProductionYear,SortName", "CommunityRating", "Random"}[idx];
@@ -1833,36 +1990,63 @@ public final class App extends Application {
             String f = filters, g = genre.getValue();
             int st = start[0], myGen = gen[0];
             bg(() -> {
-                ArrayList<JfItem> l = playlist ? jf.playlistItems(parent.id, st, 60)
-                        : jf.children(parent.id, st, 60, sb, order, f, g);
+                ArrayList<JfItem> l = playlist ? jf.playlistItems(parent.id, st, 100)
+                        : jf.children(parent.id, st, 100, sb, order, f, g);
                 return new Object[]{l, jf.lastTotal};
             }, r -> {
                 if (myGen != gen[0]) return; // veraltete Antwort nach Filterwechsel
                 @SuppressWarnings("unchecked") ArrayList<JfItem> l = (ArrayList<JfItem>) r[0];
-                int k = 0;
-                for (JfItem i : l) { Node c = card(i, false); reveal(c, k++); flow.getChildren().add(c); }
+                all.addAll(l);
                 start[0] += l.size();
                 int total = (Integer) r[1];
                 count.setText(total + " Titel");
-                boolean m = start[0] < total && !l.isEmpty();
-                more.setVisible(m);
-                more.setManaged(m);
+                pump[0].run();
+                // alles automatisch nachladen, Seite fuer Seite
+                if (start[0] < total && !l.isEmpty() && root.getCenter() != null && flow.getScene() != null) loadRef[0].run();
             });
         };
+        loadRef[0] = load;
         Runnable reset = () -> {
             if (mute[0]) return;
             gen[0]++;
+            pg[0]++;
             flow.getChildren().clear();
+            lazyPending.clear();
+            all.clear();
+            shown[0] = 0;
             start[0] = 0;
             load.run();
         };
+        ToggleGroup vg = new ToggleGroup();
+        HBox viewBox = new HBox(6);
+        String[] vlabels = {"▦", "▤", "☰", "▭"};
+        String[] vtips = {"Poster", "Info-Karten", "Liste", "Querformat"};
+        for (int vi = 0; vi < vlabels.length; vi++) {
+            ToggleButton tb = new ToggleButton(vlabels[vi]);
+            tb.getStyleClass().add("toggle-pill");
+            tb.setTooltip(new Tooltip(vtips[vi]));
+            tb.setToggleGroup(vg);
+            int vv = vi;
+            tb.setSelected(vi == view[0]);
+            tb.setOnAction(e -> {
+                if (!tb.isSelected()) { tb.setSelected(true); return; }
+                view[0] = vv;
+                settings.put("libView", LIB_VIEWS[vv]);
+                pg[0]++;
+                flow.getChildren().clear();
+                lazyPending.clear();
+                shown[0] = 0;
+                applyGaps.run();
+                pump[0].run();
+            });
+            viewBox.getChildren().add(tb);
+        }
         sort.setOnAction(e -> reset.run());
         unseen.setOnAction(e -> reset.run());
         fav.setOnAction(e -> reset.run());
-        more.setOnAction(e -> load.run());
         Region fill = new Region();
         HBox.setHgrow(fill, Priority.ALWAYS);
-        HBox bar = new HBox(12, title, count, fill, sort);
+        HBox bar = new HBox(12, title, count, fill, viewBox, sort);
         if (!playlist) bar.getChildren().addAll(unseen, fav);
         if (currentList != null) {
             Button del = button("🗑 Liste löschen", "toggle-pill");
@@ -1891,10 +2075,14 @@ public final class App extends Application {
         }
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(24, 48, 10, 48));
-        HBox moreBox = new HBox(more);
-        moreBox.setAlignment(Pos.CENTER);
-        moreBox.setPadding(new Insets(14, 0, 40, 0));
-        setContent(new BorderPane(scroll(new VBox(flow, moreBox)), bar, null, null, null));
+        flow.setPadding(new Insets(10, 48, 40, 48));
+        ScrollPane lsp = scroll(new VBox(flow));
+        spRef[0] = lsp;
+        PauseTransition lazyDebounce = new PauseTransition(Duration.millis(120));
+        lazyDebounce.setOnFinished(e -> lazyCheck(lsp));
+        lsp.vvalueProperty().addListener((o, x, y) -> lazyDebounce.playFromStart());
+        lsp.heightProperty().addListener((o, x, y) -> lazyDebounce.playFromStart());
+        setContent(new BorderPane(lsp, bar, null, null, null));
         load.run();
     }
 
