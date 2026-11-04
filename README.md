@@ -30,3 +30,24 @@ Neue Version veröffentlichen: `build`/`version` in `src/main/resources/app.prop
 Der Workflow `.github/workflows/release.yml` baut dann die EXE, legt das Release `vX.Y` an und aktualisiert `version.json` (Build, URL, MD5).
 
 `src/main/resources/vlc-win64.zip` (libVLC 64 Bit, eingebettet) liegt im Repo, damit der Build in GitHub Actions funktioniert.
+
+## Handy-/Tablet-App (Android, `android/`)
+Gradle-Projekt mit zwei Modulen: `core` (Jellyfin-REST-Client `Jf`/`JfItem`, vom PC-Code abgeleitet, auch für die spätere TV-App gedacht)
+und `mobile` (Touch-Oberfläche, Paket `de.marvin.jellyfin.mobile`, Player auf Media3/ExoPlayer).
+Eine spätere Android-TV/Fire-TV-App kommt als drittes Modul `tv` neben `mobile` und nutzt `core` mit.
+
+Funktionen: Anmeldung (Passwort/Quick Connect/Profile), Start (Weiter schauen, Als Nächstes, Neu in …), Bibliotheken mit Sortierung/Filter/Genre,
+Suche, Merkliste, Details (Besetzung, Staffeln/Folgen, Ähnliche), gesehen/Merkliste setzen (auch per langem Drücken),
+Player mit Doppeltippen ±10 s, Wischen zum Spulen/Helligkeit/Lautstärke, Ton-/Untertitel, Tempo, Kapitel, Vorspann überspringen,
+nächste Folge, Bild-in-Bild und Wiedergabestatus an den Server. Wenn der Handy-Player eine Datei nicht direkt abspielen kann (z. B. DTS), wandelt der Server um.
+
+Bauen: `cd android && ./gradlew :mobile:assembleRelease` (JDK 17+, Android-SDK 34) -> `mobile/build/outputs/apk/release/mobile-release.apk`.
+Version und Build-Nummer kommen aus derselben `app.properties` wie bei der EXE; `versionCode` = `build`.
+Der Workflow baut EXE und APK zusammen und trägt die APK in `version.json` unter `mobile` ein. Die App sucht beim Start danach
+(abschaltbar im Konto-Menü) und öffnet nach dem Download den Android-Installationsdialog.
+
+Signatur: `android/jellyfin-release.keystore` (Passwort `jellyfin`) liegt bewusst im Repo, damit jede APK dieselbe Signatur hat und sich als Update
+installieren lässt. Das ist für eine private Sideload-App ok, aber kein Schutz gegen gefälschte APKs.
+
+Tests: `ROBO_DIR=<Ordner mit android-all-Jar> ./gradlew :mobile:testDebugUnitTest` startet die echten Seiten (Login, Start, Bibliothek, Details, Serie,
+Suche, Konto, Player-Aufbau) in Robolectric gegen einen Mock-Server. Echte Wiedergabe und Gesten sind damit nicht abgedeckt.

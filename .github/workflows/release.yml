@@ -1,7 +1,8 @@
 name: Release
 
-# Baut die EXE und veröffentlicht sie als GitHub-Release, sobald sich die Version
-# in src/main/resources/app.properties ändert (oder manuell über "Run workflow").
+# Baut die Windows-EXE und die Handy-APK und veröffentlicht beide in einem GitHub-Release,
+# sobald sich die Version in src/main/resources/app.properties ändert (oder manuell über "Run workflow").
+# Version und Build-Nummer gelten für beide Programme (versionCode der APK = build).
 on:
   push:
     branches: [main]
@@ -26,26 +27,41 @@ jobs:
         run: |
           echo "version=$(grep '^version=' src/main/resources/app.properties | cut -d= -f2 | tr -d '\r')" >> "$GITHUB_OUTPUT"
           echo "build=$(grep '^build=' src/main/resources/app.properties | cut -d= -f2 | tr -d '\r')" >> "$GITHUB_OUTPUT"
-      - name: Bauen
+      - name: Bauen (Windows-EXE)
         run: mvn -B -q -DskipTests clean package
+      - name: Android-SDK vorbereiten
+        run: |
+          SDKM=$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+      - name: Bauen (Handy-APK)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon -q :mobile:assembleRelease
+          cp mobile/build/outputs/apk/release/mobile-release.apk ../target/JellyfinMobile.apk
       - name: Release veröffentlichen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v${{ steps.v.outputs.version }}"
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$TAG" target/JellyfinPC.exe --target "$GITHUB_SHA" \
+          gh release create "$TAG" target/JellyfinPC.exe target/JellyfinMobile.apk --target "$GITHUB_SHA" \
             --title "JellyfinPC ${{ steps.v.outputs.version }}" --notes "Automatischer Build ${{ steps.v.outputs.build }}."
       - name: version.json aktualisieren
         run: |
           MD5=$(md5sum target/JellyfinPC.exe | cut -d' ' -f1)
-          python3 - "$MD5" "${{ steps.v.outputs.version }}" "${{ steps.v.outputs.build }}" <<'PY'
+          APK_MD5=$(md5sum target/JellyfinMobile.apk | cut -d' ' -f1)
+          python3 - "$MD5" "$APK_MD5" "${{ steps.v.outputs.version }}" "${{ steps.v.outputs.build }}" <<'PY'
           import json, sys
-          md5, ver, build = sys.argv[1:4]
+          md5, apk_md5, ver, build = sys.argv[1:5]
           d = json.load(open('version.json'))
           w = d['windows']
           w.update(build=int(build), version=ver, md5=md5,
                    url=f"https://github.com/Chronixx4/JellyfinPC/releases/download/v{ver}/JellyfinPC.exe")
+          m = d['mobile']
+          m.update(build=int(build), version=ver, md5=apk_md5,
+                   url=f"https://github.com/Chronixx4/JellyfinPC/releases/download/v{ver}/JellyfinMobile.apk")
           json.dump(d, open('version.json', 'w'), indent=2, ensure_ascii=False)
           PY
           git config user.name "github-actions"

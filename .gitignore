@@ -5,3 +5,9 @@ dist/
 *.log
 *.tmp
 *.update
+android/.gradle/
+android/build/
+android/*/build/
+android/local.properties
+*.apk
+.idea/

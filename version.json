@@ -4,20 +4,20 @@
     "version": "2.7",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.7/JellyfinPC.exe",
     "md5": "e87b7ff0f03956365ea12c9f4d6b057d",
-    "notes": "Neuer, scharfer Übergang beim Öffnen von Titeln; lose Ordner werden nicht mehr angezeigt."
+    "notes": "Gleichzeitig erscheint die neue Handy-App (APK). Windows-App unverändert."
   },
   "tv": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neuer, scharfer Übergang beim Öffnen von Titeln; lose Ordner werden nicht mehr angezeigt."
+    "notes": ""
   },
   "mobile": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neuer, scharfer Übergang beim Öffnen von Titeln; lose Ordner werden nicht mehr angezeigt."
+    "notes": "Erste Handy-/Tablet-App: Touch-Bedienung, Player mit Wischgesten, Ton-/Untertitelwahl, Kapitel, Vorspann überspringen, automatische Updates."
   }
 }
