@@ -4,20 +4,20 @@
     "version": "2.3",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.3/JellyfinPC.exe",
     "md5": "fb29f56788a1d08b6713fec44a3de2ce",
-    "notes": "Neu: Bibliotheken mit vier umschaltbaren Ansichten, alle Titel werden automatisch geladen."
+    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
   },
   "tv": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neu: Bibliotheken mit vier umschaltbaren Ansichten, alle Titel werden automatisch geladen."
+    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
   },
   "mobile": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neu: Bibliotheken mit vier umschaltbaren Ansichten, alle Titel werden automatisch geladen."
+    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
   }
 }
