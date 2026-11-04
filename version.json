@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 17,
-    "version": "1.7",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v1.7/JellyfinPC.exe",
-    "md5": "5d0a6c40ca24466e8b0a2850f738df5b",
+    "build": 18,
+    "version": "1.8",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v1.8/JellyfinPC.exe",
+    "md5": "a74b568fe49e43cc2c0ac02e44c85e3d",
     "notes": "Auto-Update läuft jetzt über GitHub."
   },
   "tv": {
