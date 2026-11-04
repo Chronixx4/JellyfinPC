@@ -4,20 +4,20 @@
     "version": "2.4",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.4/JellyfinPC.exe",
     "md5": "3a4deeeba1d7cbabaef66dc6616e0065",
-    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
+    "notes": "Fix: Spulleiste im Player trifft jetzt auch bei Klicks knapp daneben."
   },
   "tv": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
+    "notes": "Fix: Spulleiste im Player trifft jetzt auch bei Klicks knapp daneben."
   },
   "mobile": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
+    "notes": "Fix: Spulleiste im Player trifft jetzt auch bei Klicks knapp daneben."
   }
 }
