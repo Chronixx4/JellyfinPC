@@ -250,7 +250,14 @@ final class Player extends StackPane {
         HBox row = new HBox(10, playPause, back10, fwd30, time, sp, vol, audio, subs, chap, sleep, style, speed, pin, full);
         row.setAlignment(Pos.CENTER_LEFT);
 
-        seek.setOnMousePressed(e -> seeking = true);
+        // Grosse Trefferflaeche: auch ein Klick etwas ueber oder unter der Leiste spult dorthin
+        seek.setPadding(new Insets(12, 0, 12, 0));
+        seek.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            if (e.getButton() != javafx.scene.input.MouseButton.PRIMARY) return;
+            seeking = true;
+            seek.setValue(Math.max(0, Math.min(1, (e.getX() - 8) / Math.max(1, seek.getWidth() - 16))));
+            e.consume();
+        });
         // Ziehen selbst behandeln: der eingebaute Schieberegler wirft sonst einen Fehler, wenn man neben dem Knopf anfasst
         seek.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, e -> {
             double f = Math.max(0, Math.min(1, (e.getX() - 8) / Math.max(1, seek.getWidth() - 16)));
