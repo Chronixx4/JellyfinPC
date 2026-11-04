@@ -26,7 +26,7 @@ Die App liest beim Start `version.json` aus diesem Repo (`raw.githubusercontent.
 Ist `windows.build` größer als der eingebaute Build (`src/main/resources/app.properties`), wird die EXE vom dort angegebenen
 Release-Asset geladen (MD5-Prüfung) und ersetzt. Die Einträge `tv` und `mobile` sind für die späteren Android-Apps reserviert.
 
-Neue Version veröffentlichen: `build`/`version` in `app.properties` erhöhen, bauen, EXE als Release-Asset `vX.Y` hochladen,
-dann `version.json` (Build, Version, URL, MD5) anpassen und pushen.
+Neue Version veröffentlichen: `build`/`version` in `src/main/resources/app.properties` erhöhen und nach `main` pushen.
+Der Workflow `.github/workflows/release.yml` baut dann die EXE, legt das Release `vX.Y` an und aktualisiert `version.json` (Build, URL, MD5).
 
-Zum Bauen muss `vlc-win64.zip` (libVLC 3.0.x, 64 Bit) nach `src/main/resources/` gelegt werden; sie ist nicht im Git.
+`src/main/resources/vlc-win64.zip` (libVLC 64 Bit, eingebettet) liegt im Repo, damit der Build in GitHub Actions funktioniert.
