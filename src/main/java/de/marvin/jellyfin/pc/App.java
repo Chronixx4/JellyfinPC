@@ -861,7 +861,8 @@ public final class App extends Application {
         page.setPadding(new Insets(0, 0, 40, 0));
         page.getChildren().add(loader());
         Ambient ambient = new Ambient(A1, A2, BG, !REDUCE);
-        setContent(new StackPane(ambient, scroll(page)));
+        StackPane homeHolder = new StackPane(ambient, scroll(page));
+        setContent(homeHolder);
         Callable<Object[]> homeWork = () -> {
             List<Object[]> rows = new ArrayList<>();
             ArrayList<JfItem> views = jf.views();
@@ -908,7 +909,7 @@ public final class App extends Application {
             return new Object[]{rows, hero};
         };
         Consumer<Object[]> homeRender = res -> {
-            if (page.getScene() == null) return; // Nutzer ist schon woanders: nichts Schweres mehr aufbauen
+            if (root.getCenter() != homeHolder) return; // Nutzer ist schon woanders: nichts Schweres mehr aufbauen
             @SuppressWarnings("unchecked") List<Object[]> rows = (List<Object[]>) res[0];
             @SuppressWarnings("unchecked") List<JfItem> hero = (List<JfItem>) res[1];
             page.getChildren().clear();
@@ -2601,9 +2602,10 @@ public final class App extends Application {
         VBox page = new VBox(18);
         page.setPadding(new Insets(0, 0, 50, 0));
         page.getChildren().add(loader());
-        setContent(scroll(page));
+        ScrollPane detailScroll = scroll(page);
+        setContent(detailScroll);
         bg(() -> itemCached(id), it -> {
-            if (page.getScene() == null) return;
+            if (root.getCenter() != detailScroll) return;
             page.getChildren().clear();
             Platform.runLater(() -> releaseVeil(page));
             StackPane stack = new StackPane();
