@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 22,
-    "version": "2.2",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.2/JellyfinPC.exe",
-    "md5": "4648757fcdc3b925e0aa5fb0f2fcf6f2",
+    "build": 23,
+    "version": "2.3",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.3/JellyfinPC.exe",
+    "md5": "fb29f56788a1d08b6713fec44a3de2ce",
     "notes": "Neu: Bibliotheken mit vier umschaltbaren Ansichten, alle Titel werden automatisch geladen."
   },
   "tv": {
