@@ -4,20 +4,20 @@
     "version": "2.6",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.6/JellyfinPC.exe",
     "md5": "76eb6bfc6e8c3d719a258a838041805a",
-    "notes": "Samples und Kurzfilme unter 5 Minuten werden ausgeblendet (abschaltbar im Konto-Menü)."
+    "notes": "Fix: Bibliotheken zeigen nur noch Filme und Serien, keine Ordner mit Sample- oder Proof-Dateien."
   },
   "tv": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Samples und Kurzfilme unter 5 Minuten werden ausgeblendet (abschaltbar im Konto-Menü)."
+    "notes": "Fix: Bibliotheken zeigen nur noch Filme und Serien, keine Ordner mit Sample- oder Proof-Dateien."
   },
   "mobile": {
     "build": 0,
     "version": "",
     "url": "",
     "md5": "",
-    "notes": "Samples und Kurzfilme unter 5 Minuten werden ausgeblendet (abschaltbar im Konto-Menü)."
+    "notes": "Fix: Bibliotheken zeigen nur noch Filme und Serien, keine Ordner mit Sample- oder Proof-Dateien."
   }
 }
