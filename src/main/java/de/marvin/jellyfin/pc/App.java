@@ -838,7 +838,8 @@ public final class App extends Application {
         VBox page = new VBox(8);
         page.setPadding(new Insets(0, 0, 40, 0));
         page.getChildren().add(loader());
-        setContent(scroll(page));
+        Ambient ambient = new Ambient(A1, A2, BG, !REDUCE);
+        setContent(new StackPane(ambient, scroll(page)));
         bg(() -> {
             List<Object[]> rows = new ArrayList<>();
             ArrayList<JfItem> views = jf.views();
@@ -887,7 +888,18 @@ public final class App extends Application {
             @SuppressWarnings("unchecked") List<Object[]> rows = (List<Object[]>) res[0];
             @SuppressWarnings("unchecked") List<JfItem> hero = (List<JfItem>) res[1];
             page.getChildren().clear();
+            {
+                ArrayList<String> bgUrls = new ArrayList<>();
+                for (Object[] r : rows) {
+                    @SuppressWarnings("unchecked") ArrayList<JfItem> l = (ArrayList<JfItem>) r[1];
+                    for (JfItem i : l) { String u = jf.backdrop(i); if (u != null && !bgUrls.contains(u) && bgUrls.size() < 8) bgUrls.add(u); }
+                }
+                java.util.Collections.shuffle(bgUrls);
+                ambient.setBackdrops(bgUrls);
+            }
             if (!hero.isEmpty()) {
+                ambient.setFeather(true);
+                ambient.setTranslateY(500);
                 page.getChildren().add(hero(hero));
                 // Parallax: Bild wandert langsamer als der Inhalt, Text blendet beim Scrollen aus
                 ScrollPane psp = pageScroll;
@@ -896,6 +908,7 @@ public final class App extends Application {
                     if (heroLayer != null) heroLayer.setTranslateY(Math.min(y, 500) * 0.35);
                     if (heroVid != null) heroVid.setTranslateY(Math.min(y, 500) * 0.35);
                     if (heroInfo != null) heroInfo.setOpacity(Math.max(0, 1 - y / 320));
+                    ambient.setTranslateY(Math.max(0, 500 - y)); // Hintergrund beginnt unter dem Banner
                 });
             }
             for (Object[] r : rows) {
@@ -1113,6 +1126,66 @@ public final class App extends Application {
         new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(sp.hvalueProperty(), to, Interpolator.EASE_BOTH))).play();
     }
 
+    /** Kurze stumme Szenen auf einer Bibliotheks-Kachel; wechselt alle paar Sekunden zum naechsten Titel. */
+    private final java.util.HashMap<String, ArrayList<JfItem>> sceneCache = new java.util.HashMap<>();
+
+    private final class LibScene {
+        private final JfItem lib;
+        private final StackPane img;
+        private final ImageView view = new ImageView();
+        private final PauseTransition delay = new PauseTransition(Duration.millis(450));
+        private final Timeline next;
+        private int token, idx;
+        private boolean added;
+
+        LibScene(JfItem lib, StackPane img, double w, double h) {
+            this.lib = lib;
+            this.img = img;
+            view.setFitWidth(w);
+            view.setFitHeight(h);
+            view.setPreserveRatio(false);
+            view.setOpacity(0);
+            view.setMouseTransparent(true);
+            delay.setOnFinished(e -> play());
+            next = new Timeline(new KeyFrame(Duration.seconds(6), e -> play()));
+            next.setCycleCount(Animation.INDEFINITE);
+        }
+
+        void start() {
+            if (player != null) return;
+            token++;
+            delay.playFromStart();
+        }
+
+        void stop() {
+            token++;
+            delay.stop();
+            next.stop();
+            if (added) HeroVideo.stop();
+        }
+
+        private void play() {
+            int my = token;
+            ArrayList<JfItem> pool = sceneCache.get(lib.id);
+            if (pool != null) { show(pool, my); return; }
+            bg(() -> jf.randomPlayable(lib.id, 12), l -> {
+                sceneCache.put(lib.id, l);
+                show(l, my);
+            });
+        }
+
+        private void show(ArrayList<JfItem> pool, int my) {
+            if (my != token || pool.isEmpty() || player != null || !img.isHover() && !img.getParent().isHover()) return;
+            JfItem it = pool.get(idx++ % pool.size());
+            long total = it.runTicks / 10000000L;
+            long start = (long) (total * (0.12 + 0.6 * Math.random()));
+            if (!added) { img.getChildren().add(1, view); added = true; }
+            view.setOpacity(0);
+            HeroVideo.start(view, jf.directUrl(it), start);
+            if (next.getStatus() != Animation.Status.RUNNING) next.playFromStart();
+        }
+    }
+
     private Node card(JfItem i, boolean landscape) {
         boolean isLib = "CollectionFolder".equals(i.type) || "UserView".equals(i.type);
         double w = landscape ? 300 : 172, h = landscape ? 169 : 258;
@@ -1155,6 +1228,8 @@ public final class App extends Application {
             StackPane.setMargin(nw, new Insets(8));
             img.getChildren().add(nw);
         }
+        // Bibliotheks-Kacheln: beim Ueberfahren laufen kurze stumme Szenen aus dem Inhalt
+        LibScene libScene = (isLib && landscape && !i.id.isEmpty() && heroVideoOn) ? new LibScene(i, img, w, h) : null;
         // Glanzstreifen beim Ueberfahren
         Region shine = new Region();
         shine.setMinSize(46, h * 1.8);
@@ -1229,6 +1304,7 @@ public final class App extends Application {
             if (!REDUCE) { in.playFromStart(); shineTt.playFromStart(); }
             fin.playFromStart(); img.setEffect(glow);
             if (!isLib) schedulePreview(holder, i);
+            else if (libScene != null) libScene.start();
         });
         holder.setOnMouseMoved(e -> { if (!REDUCE) c.setRotate((e.getX() / w - 0.5) * 3.2); });
         holder.setOnMouseExited(e -> {
@@ -1236,6 +1312,7 @@ public final class App extends Application {
             untilt.play();
             in.stop(); fin.stop(); out.playFromStart(); fout.playFromStart(); img.setEffect(null);
             cancelPreviewSoon();
+            if (libScene != null) libScene.stop();
         });
         // Tastatur / Controller: Karte ist anwaehlbar, zeigt dieselbe Hervorhebung wie beim Ueberfahren
         holder.setFocusTraversable(true);

@@ -280,6 +280,15 @@ final class Jf {
                 + "&Fields=" + FIELDS));
     }
 
+    /** Zufaelliger abspielbarer Titel (Film/Folge) einer Bibliothek, z. B. fuer die Vorschau-Szenen. */
+    ArrayList<JfItem> randomPlayable(String parentId, int limit) throws Exception {
+        ArrayList<JfItem> all = items(getJson("/Items?UserId=" + userId + "&ParentId=" + parentId
+                + "&Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=Random&Limit=" + limit + "&Fields=" + FIELDS));
+        ArrayList<JfItem> out = new ArrayList<>();
+        for (JfItem i : all) if (i.runTicks > 0) out.add(i);
+        return out;
+    }
+
     /** Genres einer Bibliothek. */
     ArrayList<String> genres(String parentId) throws Exception {
         JSONObject o = getJson("/Genres?UserId=" + userId + "&ParentId=" + parentId + "&SortBy=SortName");
