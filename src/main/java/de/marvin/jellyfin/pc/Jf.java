@@ -587,14 +587,17 @@ final class Jf {
     // ------------------------------------------------------------ Wiedergabe-Meldungen
 
     void reportStart(JfItem i, long ticks) {
+        if (i.externalUrl != null) return;
         report("/Sessions/Playing", i, ticks, false);
     }
 
     void reportProgress(JfItem i, long ticks, boolean paused) {
+        if (i.externalUrl != null) return;
         report("/Sessions/Playing/Progress", i, ticks, paused);
     }
 
     void reportStop(JfItem i, long ticks) {
+        if (i.externalUrl != null) return;
         report("/Sessions/Playing/Stopped", i, ticks, false);
     }
 

@@ -413,6 +413,7 @@ public final class App extends Application {
 
     /** Wird vom Player aufgerufen, wenn er sich selbst beendet hat (z. B. vor der naechsten Folge). */
     void playerEnded() {
+        invalidateCaches();
         player = null;
         if (!history.isEmpty()) current = history.pop();
     }
@@ -462,6 +463,11 @@ public final class App extends Application {
 
     // ------------------------------------------------------------ Bilder
 
+    /** Bilder-Zwischenspeicher: beim Zurueckwechseln erscheinen Poster sofort, ohne neu vom Server zu laden. */
+    private static final java.util.Map<String, Image> IMG_CACHE = new java.util.LinkedHashMap<>(256, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Image> e) { return size() > 140; }
+    };
+
     /** Bild mit abgerundeten Ecken, zugeschnitten auf w x h, mit Einblenden. */
     private StackPane picture(String url, double w, double h, double radius, double cropY) {
         StackPane box = new StackPane();
@@ -482,9 +488,18 @@ public final class App extends Application {
         pulse.setToValue(1);
         pulse.setAutoReverse(true);
         pulse.setCycleCount(Animation.INDEFINITE);
-        pulse.play();
+        // nur laufen lassen, solange die Karte wirklich im Fenster haengt (sonst bleibt die Animation ewig am Leben)
+        box.sceneProperty().addListener((o, a, b) -> { if (b == null) pulse.stop(); else if (shimmer.getParent() != null) pulse.play(); });
         box.getChildren().add(shimmer);
-        Image img = new Image(url, w * 2, 0, true, true, true);
+        double reqW = Math.min(w * 2, 1600);
+        String ckey = url + "@" + (int) reqW;
+        Image cached = IMG_CACHE.get(ckey);
+        if (cached == null || cached.isError()) {
+            cached = new Image(url, reqW, 0, true, true, true);
+            IMG_CACHE.put(ckey, cached);
+        }
+        Image img = cached;
+        img.errorProperty().addListener((o, a, b) -> { if (b) { pulse.stop(); box.getChildren().remove(shimmer); } });
         ImageView iv = new ImageView();
         iv.setOpacity(0);
         iv.setSmooth(true);
@@ -684,6 +699,7 @@ public final class App extends Application {
 
     /** "Wer schaut?" - Auswahl der gespeicherten Profile, mit PIN falls gesetzt. */
     private void profilePicker() {
+        invalidateCaches();
         HeroVideo.stop();
         hidePreviewNow();
         root.setTop(null);
@@ -739,6 +755,7 @@ public final class App extends Application {
     }
 
     private void login() {
+        invalidateCaches();
         root.setTop(null);
         if (heroTimer != null) heroTimer.stop();
         TextField server = new TextField(jf.server);
@@ -845,7 +862,7 @@ public final class App extends Application {
         page.getChildren().add(loader());
         Ambient ambient = new Ambient(A1, A2, BG, !REDUCE);
         setContent(new StackPane(ambient, scroll(page)));
-        bg(() -> {
+        Callable<Object[]> homeWork = () -> {
             List<Object[]> rows = new ArrayList<>();
             ArrayList<JfItem> views = jf.views();
             ArrayList<JfItem> resume = jf.resume();
@@ -889,7 +906,9 @@ public final class App extends Application {
                 }
             }
             return new Object[]{rows, hero};
-        }, res -> {
+        };
+        Consumer<Object[]> homeRender = res -> {
+            if (page.getScene() == null) return; // Nutzer ist schon woanders: nichts Schweres mehr aufbauen
             @SuppressWarnings("unchecked") List<Object[]> rows = (List<Object[]>) res[0];
             @SuppressWarnings("unchecked") List<JfItem> hero = (List<JfItem>) res[1];
             page.getChildren().clear();
@@ -920,7 +939,30 @@ public final class App extends Application {
                 @SuppressWarnings("unchecked") ArrayList<JfItem> l = (ArrayList<JfItem>) r[1];
                 page.getChildren().add(row((String) r[0], l, (Boolean) r[2]));
             }
-        });
+        };
+        long now = System.currentTimeMillis();
+        Object[] hc = homeCache;
+        if (hc != null && now - homeCacheAt < 60_000) homeRender.accept(hc);
+        else bg(homeWork, r -> { homeCache = r; homeCacheAt = System.currentTimeMillis(); homeRender.accept(r); });
+    }
+
+    // Zwischenspeicher fuer Startseite und Detailseiten (kurz gueltig): schnelles Hin- und Herwechseln
+    private Object[] homeCache;
+    private long homeCacheAt;
+    private final java.util.HashMap<String, Object[]> itemCache = new java.util.HashMap<>();
+
+    private void invalidateCaches() {
+        homeCache = null;
+        itemCache.clear();
+    }
+
+    private JfItem itemCached(String id) throws Exception {
+        Object[] c;
+        synchronized (itemCache) { c = itemCache.get(id); }
+        if (c != null && System.currentTimeMillis() - (Long) c[1] < 45_000) return (JfItem) c[0];
+        JfItem it = jf.item(id);
+        synchronized (itemCache) { if (itemCache.size() > 60) itemCache.clear(); itemCache.put(id, new Object[]{it, System.currentTimeMillis()}); }
+        return it;
     }
 
     /** Grosser Banner mit wechselnden Titeln. */
@@ -1699,6 +1741,7 @@ public final class App extends Application {
     }
 
     private void toggleFavorite(JfItem i, Button btn) {
+        invalidateCaches();
         boolean on = !i.favorite;
         bg(() -> { jf.setFavorite(i.id, on); return on; }, r -> {
             i.favorite = on;
@@ -1712,6 +1755,7 @@ public final class App extends Application {
     }
 
     private void togglePlayed(JfItem i, Button btn) {
+        invalidateCaches();
         boolean on = !i.played;
         bg(() -> { jf.setPlayed(i.id, on); return on; }, r -> {
             i.played = on;
@@ -1964,6 +2008,31 @@ public final class App extends Application {
                 if (!silent) Platform.runLater(() -> toast("Update-Server nicht erreichbar"));
             }
         }, "update-check");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void playTrailer(JfItem it) {
+        toast("Trailer wird gesucht …");
+        Thread t = new Thread(() -> {
+            try {
+                ArrayList<JfItem> local = jf.localTrailers(it.id);
+                if (!local.isEmpty()) { JfItem l = local.get(0); Platform.runLater(() -> play(l)); return; }
+                String target = !it.trailerUrl.isEmpty() ? it.trailerUrl
+                        : "ytsearch1:" + it.name + (it.year > 0 ? " (" + it.year + ")" : "") + " offizieller Trailer deutsch";
+                java.util.List<String> urls = Trailers.resolve(target, m -> Platform.runLater(() -> toast(m)));
+                JfItem tr = new JfItem();
+                tr.id = "trailer-" + it.id;
+                tr.name = it.name + " – Trailer";
+                tr.type = "Movie";
+                tr.externalUrl = urls.get(0);
+                tr.externalAudio = urls.size() > 1 ? urls.get(1) : null;
+                Platform.runLater(() -> play(tr));
+            } catch (Exception ex) {
+                Log.e("Trailer", ex);
+                Platform.runLater(() -> toast("Trailer nicht gefunden: " + ex.getMessage()));
+            }
+        }, "trailer");
         t.setDaemon(true);
         t.start();
     }
@@ -2533,7 +2602,8 @@ public final class App extends Application {
         page.setPadding(new Insets(0, 0, 50, 0));
         page.getChildren().add(loader());
         setContent(scroll(page));
-        bg(() -> jf.item(id), it -> {
+        bg(() -> itemCached(id), it -> {
+            if (page.getScene() == null) return;
             page.getChildren().clear();
             Platform.runLater(() -> releaseVeil(page));
             StackPane stack = new StackPane();
@@ -2663,11 +2733,7 @@ public final class App extends Application {
             btns.getChildren().add(favB);
             if ("Movie".equals(it.type) || "Series".equals(it.type)) {
                 Button tr = iconBtn("play", "Trailer", "btn-ghost");
-                tr.setOnAction(e -> bg(() -> jf.localTrailers(it.id), l -> {
-                    if (!l.isEmpty()) play(l.get(0));
-                    else if (!it.trailerUrl.isEmpty()) { getHostServices().showDocument(it.trailerUrl); toast("Trailer wird im Browser geöffnet"); }
-                    else toast("Kein Trailer hinterlegt");
-                }));
+                tr.setOnAction(e -> playTrailer(it));
                 btns.getChildren().add(tr);
             }
             if (it.isPlayable()) btns.getChildren().add(dlButton(it));

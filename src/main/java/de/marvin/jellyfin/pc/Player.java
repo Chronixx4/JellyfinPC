@@ -83,6 +83,7 @@ final class Player extends StackPane {
     }
 
     private String src() {
+        if (item.externalUrl != null) return item.externalUrl;
         java.io.File f = Downloads.file(item.id);
         return f != null ? f.getAbsolutePath() : jf.directUrl(item);
     }
@@ -374,6 +375,7 @@ final class Player extends StackPane {
         // Intro/Abspann holen (Kapitel brauchen die Detaildaten)
         daemon(() -> {
             try {
+                if (item.externalUrl != null) return;
                 JfItem full2 = jf.item(item.id);
                 chapters = full2.chapters;
                 if (full2.tpWidth > 0 && full2.tpTileW > 0 && full2.tpTileH > 0) tpItem = full2;
@@ -424,6 +426,8 @@ final class Player extends StackPane {
                 if (item.resumeTicks > 0) {
                     resumed = true; // Startposition direkt beim Oeffnen setzen, kein Neustart bei 0:00
                     p.media().play(src(), ":start-time=" + (item.resumeTicks / 10000000L));
+                } else if (item.externalAudio != null) {
+                    p.media().play(src(), ":input-slave=" + item.externalAudio);
                 } else {
                     p.media().play(src());
                 }

@@ -31,7 +31,7 @@ final class JfItem {
     String created = "";
     String playlistItemId = "";
     int unplayed;
-    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "", trailerUrl = "";
+    String primaryTag, thumbTag, backdropTag, backdropItemId, seriesPrimaryTag, seriesThumbTag, genres = "", trailerUrl = "", externalUrl, externalAudio;
     float ratio = 0.667f;
 
     // Medien-Infos (nur wenn MediaStreams mitgeliefert wurden)
