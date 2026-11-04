@@ -1,0 +1,87 @@
+package de.marvin.jellyfin.mobile;
+
+import android.view.Gravity;
+import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.Switch;
+import android.widget.TextView;
+
+import de.marvin.jellyfin.core.JfItem;
+
+/** Konto und Einstellungen. */
+final class AccountScreen extends Screen {
+    AccountScreen(MainActivity a) { super(a); }
+
+    private Switch toggle(String label, boolean on, CompoundButton.OnCheckedChangeListener l) {
+        Switch s = new Switch(a);
+        s.setText(label);
+        s.setTextColor(Ui.TEXT);
+        s.setTextSize(16);
+        s.setChecked(on);
+        s.setMinHeight(Ui.dp(a, 56));
+        s.setOnCheckedChangeListener(l);
+        return s;
+    }
+
+    @Override
+    View build() {
+        LinearLayout col = new LinearLayout(a);
+        col.setOrientation(LinearLayout.VERTICAL);
+        int pad = Ui.dp(a, 20);
+        col.setPadding(pad, 0, pad, pad);
+
+        LinearLayout bar = new LinearLayout(a);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        TextView back = Ui.text(a, "←", 24, Ui.TEXT, false);
+        back.setGravity(Gravity.CENTER);
+        back.setMinWidth(Ui.dp(a, 52));
+        back.setMinHeight(Ui.dp(a, 52));
+        back.setOnClickListener(v -> a.pop());
+        bar.addView(back);
+        bar.addView(Ui.text(a, "Konto", 20, Ui.TEXT, true));
+        LinearLayout root = new LinearLayout(a);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.addView(bar);
+
+        col.addView(Ui.text(a, a.jf.userName, 22, Ui.TEXT, true));
+        col.addView(Ui.text(a, a.jf.server, 14, Ui.MUTED, false));
+        col.addView(Ui.space(a, 16));
+
+        col.addView(toggle("Kurze Filme (< 5 Min) ausblenden", JfItem.hideShort, (b, on) -> {
+            JfItem.hideShort = on;
+            a.prefs.edit().putBoolean("hideShort", on).apply();
+        }));
+        col.addView(toggle("Immer vom Server umwandeln (spart Daten, bei Wiedergabeproblemen)",
+                a.prefs.getBoolean("alwaysTranscode", false),
+                (b, on) -> a.prefs.edit().putBoolean("alwaysTranscode", on).apply()));
+        col.addView(toggle("Beim Start nach Updates suchen", a.prefs.getBoolean("updateAuto", true),
+                (b, on) -> a.prefs.edit().putBoolean("updateAuto", on).apply()));
+        col.addView(Ui.space(a, 16));
+
+        TextView fav = Ui.button(a, "♥ Merkliste", false);
+        fav.setOnClickListener(v -> a.push(new ListScreen(a, "Merkliste", ListScreen.FAVORITES)));
+        col.addView(fav, gap());
+        TextView upd = Ui.button(a, "Nach Updates suchen (Version " + Updater.currentVersion(a) + ")", false);
+        upd.setOnClickListener(v -> Updater.check(a, true));
+        col.addView(upd, gap());
+        TextView sw = Ui.button(a, "Profil wechseln", false);
+        sw.setOnClickListener(v -> { a.reset(new LoginScreen(a)); });
+        col.addView(sw, gap());
+        TextView out = Ui.button(a, "Abmelden", false);
+        out.setOnClickListener(v -> { a.jf.logout(); a.reset(new LoginScreen(a)); });
+        col.addView(out, gap());
+
+        ScrollView sv = new ScrollView(a);
+        sv.addView(col);
+        root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
+        return root;
+    }
+
+    private LinearLayout.LayoutParams gap() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = Ui.dp(a, 10);
+        return lp;
+    }
+}

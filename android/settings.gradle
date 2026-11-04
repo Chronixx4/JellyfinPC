@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "JellyfinAndroid"
+// core   = gemeinsame Jellyfin-Logik (REST-Client, Datenmodelle) fuer Handy und spaeter TV/Fire TV
+// mobile = Handy/Tablet-App mit Touch-Bedienung
+include ':core', ':mobile'
