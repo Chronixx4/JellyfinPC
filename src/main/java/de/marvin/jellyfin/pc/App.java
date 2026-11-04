@@ -1832,6 +1832,19 @@ public final class App extends Application {
     private double cardScale = 1;
     private static final double[] SIZE_SCALE = {0.75, 1.0, 1.3};
     private static final String[] SIZE_NAMES = {"Klein", "Mittel", "Groß"};
+    /** Welche Titel eine Bibliothek zeigt (rekursiv, nur Filme/Serien); null = normale Ordneransicht. */
+    private static String libTypes(JfItem parent) {
+        boolean lib = "CollectionFolder".equals(parent.type) || "UserView".equals(parent.type) || !parent.collectionType.isEmpty();
+        if (!lib) return null;
+        switch (parent.collectionType) {
+            case "movies": return "Movie";
+            case "tvshows": return "Series";
+            case "boxsets": return "BoxSet";
+            case "music": case "musicvideos": case "books": case "photos": case "playlists": case "livetv": return null;
+            default: return "Movie,Series";
+        }
+    }
+
     private static final String[] LIB_VIEWS = {"Poster", "Info", "Liste", "Quer"};
 
     private String metaLine(JfItem i) {
@@ -1951,7 +1964,7 @@ public final class App extends Application {
         genre.setVisibleRowCount(14);
         Button rnd = button("🎲 Zufall", "toggle-pill");
         rnd.setOnAction(e -> bg(() -> {
-            ArrayList<JfItem> l = jf.children(parent.id, 0, 1, "Random", "Ascending");
+            ArrayList<JfItem> l = jf.children(parent.id, 0, 1, "Random", "Ascending", "", null, libTypes(parent));
             return l.isEmpty() ? null : l.get(0);
         }, r -> { if (r != null) open(r); }));
         int[] start = {0};
@@ -2010,7 +2023,7 @@ public final class App extends Application {
             int st = start[0], myGen = gen[0];
             bg(() -> {
                 ArrayList<JfItem> l = playlist ? jf.playlistItems(parent.id, st, 100)
-                        : jf.children(parent.id, st, 100, sb, order, f, g);
+                        : jf.children(parent.id, st, 100, sb, order, f, g, libTypes(parent));
                 return new Object[]{l, jf.lastTotal, jf.lastRaw};
             }, r -> {
                 if (myGen != gen[0]) return; // veraltete Antwort nach Filterwechsel

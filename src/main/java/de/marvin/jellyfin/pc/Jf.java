@@ -266,7 +266,7 @@ final class Jf {
 
     ArrayList<JfItem> latest(String parentId) throws Exception {
         JSONArray a = new JSONArray(request("GET", "/Items/Latest?UserId=" + userId + "&ParentId=" + parentId
-                + "&Limit=20&Fields=" + FIELDS, null));
+                + "&Limit=20&IncludeItemTypes=Movie,Series,Episode&Fields=" + FIELDS, null));
         ArrayList<JfItem> out = new ArrayList<>();
         for (int i = 0; i < a.length(); i++) { JfItem it = JfItem.from(a.getJSONObject(i)); if (!it.isSample()) out.add(it); }
         return out;
@@ -279,7 +279,17 @@ final class Jf {
     /** Wie children, mit Filter (z. B. IsUnplayed, IsFavorite) und optionalem Genre. */
     ArrayList<JfItem> children(String parentId, int start, int limit, String sortBy, String order, String filters,
                                String genre) throws Exception {
+        return children(parentId, start, limit, sortBy, order, filters, genre, null);
+    }
+
+    /**
+     * Inhalt einer Bibliothek. Mit types (z. B. "Movie") wird rekursiv gesucht: so erscheinen nur echte Filme/Serien,
+     * keine Ordner und keine losen Dateien wie "Sample" oder "Proof" neben dem Film.
+     */
+    ArrayList<JfItem> children(String parentId, int start, int limit, String sortBy, String order, String filters,
+                               String genre, String types) throws Exception {
         return items(getJson("/Items?UserId=" + userId + "&ParentId=" + parentId
+                + (types != null ? "&Recursive=true&IncludeItemTypes=" + types : "")
                 + "&SortBy=" + sortBy + "&SortOrder=" + order + "&StartIndex=" + start + "&Limit=" + limit
                 + (filters != null && filters.length() > 0 ? "&Filters=" + filters : "")
                 + (genre != null ? "&Genres=" + java.net.URLEncoder.encode(genre, "UTF-8") : "")
