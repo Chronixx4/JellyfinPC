@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 20,
-    "version": "2.0",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.0/JellyfinPC.exe",
-    "md5": "5a148de066234183af64863594313fff",
+    "build": 21,
+    "version": "2.1",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.1/JellyfinPC.exe",
+    "md5": "c8c6aee1b27a111f9a8eea6409654ad4",
     "notes": "Neu: Trailer direkt im Player, schnelleres Wechseln zwischen Seiten, Speicherleck behoben."
   },
   "tv": {
