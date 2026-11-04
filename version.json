@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 23,
-    "version": "2.3",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.3/JellyfinPC.exe",
-    "md5": "fb29f56788a1d08b6713fec44a3de2ce",
+    "build": 24,
+    "version": "2.4",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.4/JellyfinPC.exe",
+    "md5": "3a4deeeba1d7cbabaef66dc6616e0065",
     "notes": "Neu: Trailer spulbar und flüssig, Samples werden ausgeblendet, Poster-Größe einstellbar."
   },
   "tv": {
