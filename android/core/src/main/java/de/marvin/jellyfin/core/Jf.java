@@ -211,6 +211,75 @@ public final class Jf {
 
     public static final class AuthException extends Exception {}
 
+    // ------------------------------------------------------------ Fernsteuerung (andere Geraete steuern)
+
+    /** Ein anderes Geraet (PC, TV ...), das ueber Jellyfin ferngesteuert werden kann. */
+    public static final class RemoteSession {
+        public String id, deviceName, client, itemId, itemName, subtitle;
+        public long positionTicks, runTicks;
+        public boolean paused, muted, playing;
+        public int volume = -1;
+
+        public String label() { return deviceName + (client.isEmpty() ? "" : "  ·  " + client); }
+    }
+
+    public String deviceId() { return deviceId; }
+
+    /** Alle Geraete, die der angemeldete Benutzer steuern kann (ohne dieses Handy). */
+    public java.util.ArrayList<RemoteSession> remoteSessions() throws Exception {
+        JSONArray a = new JSONArray(request("GET", "/Sessions?ControllableByUserId=" + userId, null));
+        java.util.ArrayList<RemoteSession> out = new java.util.ArrayList<>();
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject o = a.getJSONObject(i);
+            if (deviceId.equals(o.optString("DeviceId"))) continue;
+            if (!o.optBoolean("SupportsRemoteControl", false)) continue;
+            RemoteSession r = new RemoteSession();
+            r.id = o.optString("Id");
+            r.deviceName = o.optString("DeviceName", "Gerät");
+            r.client = o.optString("Client", "");
+            JSONObject ps = o.optJSONObject("PlayState");
+            if (ps != null) {
+                r.positionTicks = ps.optLong("PositionTicks", 0);
+                r.paused = ps.optBoolean("IsPaused", false);
+                r.muted = ps.optBoolean("IsMuted", false);
+                r.volume = ps.optInt("VolumeLevel", -1);
+            }
+            JSONObject np = o.optJSONObject("NowPlayingItem");
+            if (np != null) {
+                r.playing = true;
+                r.itemId = np.optString("Id");
+                r.runTicks = np.optLong("RunTimeTicks", 0);
+                String series = np.optString("SeriesName", "");
+                r.itemName = np.optString("Name");
+                r.subtitle = series;
+            }
+            out.add(r);
+        }
+        return out;
+    }
+
+    /** Befehl an die Wiedergabe eines Geraets: Pause, Unpause, PlayPause, Stop, Seek, NextTrack, PreviousTrack ... */
+    public void remotePlaystate(String sessionId, String command, long seekTicks) throws Exception {
+        request("POST", "/Sessions/" + sessionId + "/Playing/" + command
+                + (seekTicks >= 0 && command.equals("Seek") ? "?seekPositionTicks=" + seekTicks : ""), "");
+    }
+
+    /** Auf einem anderen Geraet einen Titel abspielen. */
+    public void remotePlay(String sessionId, String itemId, long startTicks) throws Exception {
+        request("POST", "/Sessions/" + sessionId + "/Playing?playCommand=PlayNow&itemIds=" + itemId
+                + "&startPositionTicks=" + Math.max(0, startTicks), "");
+    }
+
+    /** Allgemeiner Befehl, z. B. SetVolume (Argument Volume), ToggleMute. */
+    public void remoteCommand(String sessionId, String name, String argKey, String argValue) throws Exception {
+        JSONObject o = new JSONObject().put("Name", name);
+        if (argKey != null) o.put("Arguments", new JSONObject().put(argKey, argValue));
+        request("POST", "/Sessions/" + sessionId + "/Command", o.toString());
+    }
+
+    public String itemImage(String itemId) { return img(itemId, "Primary", null, 300); }
+
+
     private JSONObject getJson(String path) throws Exception {
         return new JSONObject(request("GET", path, null));
     }

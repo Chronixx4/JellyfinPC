@@ -197,6 +197,20 @@ final class Jf {
         return server.replaceFirst("^http", "ws") + "/socket?api_key=" + token + "&deviceId=" + deviceId;
     }
 
+    /** Meldet beim Server, dass dieser Client ferngesteuert werden kann (Handy-App sieht ihn dann als Ziel). */
+    void registerCapabilities() throws Exception {
+        JSONObject o = new JSONObject();
+        o.put("PlayableMediaTypes", new org.json.JSONArray().put("Video").put("Audio"));
+        o.put("SupportedCommands", new org.json.JSONArray().put("VolumeUp").put("VolumeDown").put("Mute").put("Unmute")
+                .put("ToggleMute").put("SetVolume").put("DisplayMessage"));
+        o.put("SupportsMediaControl", true);
+        o.put("SupportsPersistentIdentifier", true);
+        request("POST", "/Sessions/Capabilities/Full", o.toString());
+    }
+
+    volatile int volumeLevel = 80;
+    volatile boolean isMuted;
+
     static final class AuthException extends Exception {}
 
     private JSONObject getJson(String path) throws Exception {
@@ -625,6 +639,8 @@ final class Jf {
             o.put("PositionTicks", ticks);
             o.put("IsPaused", paused);
             o.put("CanSeek", true);
+            o.put("VolumeLevel", volumeLevel);
+            o.put("IsMuted", isMuted);
             o.put("PlayMethod", "DirectPlay");
             o.put("PlaySessionId", playSession(i.id));
             request("POST", path, o.toString());
