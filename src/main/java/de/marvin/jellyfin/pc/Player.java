@@ -115,6 +115,7 @@ final class Player extends StackPane {
     private final MenuButton audio = new MenuButton("🔊  Ton"), subs = new MenuButton("💬  Untertitel");
 
     // Zwischengespeicherter Zustand (aus Ereignissen), damit die Oberflaeche nie libVLC fragen muss
+    private Slider volSlider;
     private volatile long curTime, curLen;
     private volatile boolean isPlaying, started;
     private volatile List<TrackDescription> audioTracks = new ArrayList<>(), subTracks = new ArrayList<>();
@@ -237,8 +238,10 @@ final class Player extends StackPane {
         Button full = icon("⛶");
         full.setOnAction(e -> toggleFullscreen());
         Slider vol = new Slider(0, 100, volume);
+        volSlider = vol;
+        jf.volumeLevel = (int) volume;
         vol.setPrefWidth(90);
-        vol.valueProperty().addListener((o, a, b) -> { volume = b.doubleValue(); java.util.prefs.Preferences.userRoot().node("de/marvin/jellyfin/pc/ui").putInt("volume", b.intValue()); cmd(m -> m.audio().setVolume(b.intValue())); });
+        vol.valueProperty().addListener((o, a, b) -> { volume = b.doubleValue(); jf.volumeLevel = b.intValue(); java.util.prefs.Preferences.userRoot().node("de/marvin/jellyfin/pc/ui").putInt("volume", b.intValue()); cmd(m -> m.audio().setVolume(b.intValue())); });
         time.setStyle("-fx-font-size:13px;-fx-font-weight:600;");
         time.setMinWidth(130); // feste Breite: nichts verschiebt sich, wenn die Zeit weiterlaeuft
         Region sp = new Region();
@@ -354,7 +357,7 @@ final class Player extends StackPane {
             else if (k == KeyCode.RIGHT) skipBy(30000);
             else if (k == KeyCode.UP) vol.setValue(Math.min(100, vol.getValue() + 5));
             else if (k == KeyCode.DOWN) vol.setValue(Math.max(0, vol.getValue() - 5));
-            else if (k == KeyCode.M) { muted = !muted; boolean mu = muted; cmd(m -> m.audio().setMute(mu)); }
+            else if (k == KeyCode.M) setMuted(!muted);
             else if (k == KeyCode.S) { if (skip.isVisible()) doSkip(); }
             else if (k == KeyCode.T) toggleOnTop();
             else if (k == KeyCode.F || k == KeyCode.F11) toggleFullscreen();
@@ -535,6 +538,45 @@ final class Player extends StackPane {
         seekTip.setContentDisplay(ContentDisplay.TOP);
         return true;
     }
+
+    private void setMuted(boolean mu) {
+        muted = mu;
+        jf.isMuted = mu;
+        cmd(m -> m.audio().setMute(mu));
+    }
+
+    /** Fernsteuerung (Handy): Pause, Unpause, PlayPause, Stop, Seek, NextTrack, PreviousTrack. */
+    void remote(String command, long seekMs) {
+        switch (command) {
+            case "Pause" -> { if (isPlaying) userPause(); }
+            case "Unpause" -> { if (!isPlaying) userPause(); }
+            case "PlayPause" -> userPause();
+            case "Stop" -> { close(); return; }
+            case "Seek" -> userSeekMs(seekMs);
+            case "Rewind" -> skipBy(-10000);
+            case "FastForward" -> skipBy(30000);
+            case "NextTrack" -> { if (nextEp != null) { onFinished(); return; } }
+            case "PreviousTrack" -> userSeekMs(0);
+            default -> { return; }
+        }
+        // Zustand kurz danach sofort an den Server melden, damit die Handy-Anzeige nicht hinterherhinkt
+        PauseTransition w = new PauseTransition(Duration.millis(350));
+        w.setOnFinished(e -> {
+            if (closed) return;
+            long t = curTime;
+            boolean paused = !isPlaying;
+            daemon(() -> jf.reportProgress(item, t * 10000, paused), "report");
+        });
+        w.play();
+    }
+
+    void remoteVolume(int v) {
+        if (volSlider != null) volSlider.setValue(Math.max(0, Math.min(100, v)));
+    }
+
+    void remoteVolumeDelta(int d) { remoteVolume((int) volume + d); }
+
+    void remoteMute(int mode) { setMuted(mode < 0 ? !muted : mode > 0); }
 
     private void skipBy(long ms) {
         SyncPlay sp = app.sync();
@@ -721,7 +763,7 @@ final class Player extends StackPane {
             }
         }
         long now = System.currentTimeMillis();
-        if (now - lastReport > 10000) {
+        if (now - lastReport > 3000) {
             lastReport = now;
             boolean paused = !isPlaying;
             daemon(() -> jf.reportProgress(item, t * 10000, paused), "report");

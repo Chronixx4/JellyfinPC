@@ -4,7 +4,7 @@
     "version": "3.0",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinPC.exe",
     "md5": "5bdfb8825e22ccd18ae2f5049e47771d",
-    "notes": "Alle Emojis durch dieselben Icons wie in der Handy-App ersetzt."
+    "notes": "Handy als Fernbedienung: die PC-App ist jetzt vom Handy aus steuerbar (Abspielen, Pause, Springen, Lautstärke)."
   },
   "tv": {
     "build": 0,
@@ -18,6 +18,6 @@
     "version": "3.0",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinMobile.apk",
     "md5": "975399a3fe98a3bb43c81199ca5726b4",
-    "notes": "Gleiche Funktionen wie die PC-App: Statistik, Listen/Sammlungen, Downloads, Trailer, Abspann überspringen, Schlaf-Timer, Profil-PIN. Gemeinsame Icons."
+    "notes": "Neu: Fernbedienung (TV-Symbol oben) und „Auf Gerät abspielen“ auf der Detailseite steuern die PC-App."
   }
 }

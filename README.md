@@ -51,3 +51,11 @@ installieren lässt. Das ist für eine private Sideload-App ok, aber kein Schutz
 
 Tests: `ROBO_DIR=<Ordner mit android-all-Jar> ./gradlew :mobile:testDebugUnitTest` startet die echten Seiten (Login, Start, Bibliothek, Details, Serie,
 Suche, Konto, Player-Aufbau) in Robolectric gegen einen Mock-Server. Echte Wiedergabe und Gesten sind damit nicht abgedeckt.
+
+## Handy als Fernbedienung (seit 3.1)
+
+Die PC-App meldet sich beim Jellyfin-Server als steuerbares Gerät an (Sessions-/Remote-Control-API, WebSocket `/socket`
+und `POST /Sessions/Capabilities/Full`). In der Handy-App öffnet das TV-Symbol oben die Fernbedienung: Gerät wählen,
+dann Pause/Weiter, ±Sprung, Spulen, nächste Folge, Stop und Lautstärke. Auf jeder Detailseite startet das TV-Symbol
+neben „Abspielen“ den Titel auf dem gewählten Gerät. Andere Clients (z. B. die TV-App) erscheinen automatisch, sobald sie
+sich genauso anmelden (`Remote.java` als Vorlage).
