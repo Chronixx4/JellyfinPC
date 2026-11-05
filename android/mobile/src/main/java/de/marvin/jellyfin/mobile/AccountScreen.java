@@ -16,6 +16,8 @@ final class AccountScreen extends Screen {
 
     private Switch toggle(String label, boolean on, CompoundButton.OnCheckedChangeListener l) {
         Switch s = new Switch(a);
+        s.setThumbTintList(android.content.res.ColorStateList.valueOf(Ui.ACCENT));
+        s.setTrackTintList(android.content.res.ColorStateList.valueOf(Ui.CARD2));
         s.setText(label);
         s.setTextColor(Ui.TEXT);
         s.setTextSize(16);
@@ -34,13 +36,11 @@ final class AccountScreen extends Screen {
 
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        TextView back = Ui.text(a, "←", 24, Ui.TEXT, false);
-        back.setGravity(Gravity.CENTER);
-        back.setMinWidth(Ui.dp(a, 52));
-        back.setMinHeight(Ui.dp(a, 52));
+        bar.setPadding(Ui.dp(a, 8), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 4));
+        android.widget.ImageView back = Ui.iconButton(a, "back", 44, false);
         back.setOnClickListener(v -> a.pop());
         bar.addView(back);
-        bar.addView(Ui.text(a, "Konto", 20, Ui.TEXT, true));
+        bar.addView(Ui.text(a, "Konto", 22, Ui.TEXT, true));
         LinearLayout root = new LinearLayout(a);
         root.setOrientation(LinearLayout.VERTICAL);
         root.addView(bar);
@@ -60,16 +60,16 @@ final class AccountScreen extends Screen {
                 (b, on) -> a.prefs.edit().putBoolean("updateAuto", on).apply()));
         col.addView(Ui.space(a, 16));
 
-        TextView fav = Ui.button(a, "♥ Merkliste", false);
+        Ui.Btn fav = Ui.button(a, "heart", "Merkliste", false);
         fav.setOnClickListener(v -> a.push(new ListScreen(a, "Merkliste", ListScreen.FAVORITES)));
         col.addView(fav, gap());
-        TextView upd = Ui.button(a, "Nach Updates suchen (Version " + Updater.currentVersion(a) + ")", false);
+        Ui.Btn upd = Ui.button(a, "update", "Nach Updates suchen (Version " + Updater.currentVersion(a) + ")", false);
         upd.setOnClickListener(v -> Updater.check(a, true));
         col.addView(upd, gap());
-        TextView sw = Ui.button(a, "Profil wechseln", false);
+        Ui.Btn sw = Ui.button(a, "person", "Profil wechseln", false);
         sw.setOnClickListener(v -> { a.reset(new LoginScreen(a)); });
         col.addView(sw, gap());
-        TextView out = Ui.button(a, "Abmelden", false);
+        Ui.Btn out = Ui.button(a, "logout", "Abmelden", false);
         out.setOnClickListener(v -> { a.jf.logout(); a.reset(new LoginScreen(a)); });
         col.addView(out, gap());
 

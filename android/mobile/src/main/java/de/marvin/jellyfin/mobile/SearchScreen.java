@@ -29,7 +29,7 @@ final class SearchScreen extends GridScreen {
         box.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
         box.setMinHeight(Ui.dp(a, 48));
         box.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), 0);
-        box.setBackground(Ui.round(Ui.CARD, 24, a));
+        box.setBackground(Ui.outlined(a, 0x14FFFFFF, Ui.LINE, 24));
         box.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int st, int c, int af) { }
             @Override public void onTextChanged(CharSequence s, int st, int b, int c) { }

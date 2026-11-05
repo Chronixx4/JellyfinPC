@@ -10,6 +10,7 @@ import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -22,12 +23,16 @@ import java.util.concurrent.Executors;
 
 /** Kleine Helfer fuer die rein programmatische Oberflaeche (Farben, Texte, Buttons, Bilder). */
 final class Ui {
-    static final int BG = Color.parseColor("#0E0F14");
-    static final int CARD = Color.parseColor("#1A1C24");
-    static final int CARD2 = Color.parseColor("#252833");
-    static final int ACCENT = Color.parseColor("#00A4DC");
-    static final int TEXT = Color.WHITE;
-    static final int MUTED = Color.parseColor("#9AA0AE");
+    // Farben wie in der PC-App (style.css)
+    static final int BG = Color.parseColor("#0A0D12");
+    static final int CARD = Color.parseColor("#131820");
+    static final int CARD2 = Color.parseColor("#1D232C");
+    static final int GLASS = Color.parseColor("#E6121822");
+    static final int LINE = Color.parseColor("#1AFFFFFF");
+    static final int ACCENT = Color.parseColor("#8B6CFF");
+    static final int ACCENT2 = Color.parseColor("#19A8FF");
+    static final int TEXT = Color.parseColor("#EEF2F6");
+    static final int MUTED = Color.parseColor("#8B98A8");
 
     private Ui() {}
 
@@ -51,26 +56,127 @@ final class Ui {
         return g;
     }
 
-    /** Gefuellter Button (mind. 48dp hoch, damit er auf dem Handy gut zu treffen ist). */
-    static TextView button(Context c, String label, boolean primary) {
-        TextView t = text(c, label, 15, primary ? Color.BLACK : TEXT, true);
-        t.setGravity(Gravity.CENTER);
-        t.setMinHeight(dp(c, 48));
-        t.setPadding(dp(c, 18), 0, dp(c, 18), 0);
-        t.setBackground(round(primary ? ACCENT : CARD2, 24, c));
-        t.setClickable(true);
-        t.setFocusable(true);
-        return t;
+    static GradientDrawable gradient(Context c, float radiusDp) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{ACCENT, ACCENT2});
+        g.setCornerRadius(dp(c, radiusDp));
+        return g;
     }
 
+    static GradientDrawable outlined(Context c, int fill, int stroke, float radiusDp) {
+        GradientDrawable g = round(fill, radiusDp, c);
+        g.setStroke(Math.max(1, dp(c, 1)), stroke);
+        return g;
+    }
+
+    static ImageView icon(Context c, String name, float sizeDp, int color) {
+        ImageView v = new ImageView(c);
+        v.setImageDrawable(Icons.drawable(name, color));
+        v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, sizeDp), dp(c, sizeDp)));
+        return v;
+    }
+
+    /** Pillen-Knopf wie in der PC-App: primaer = Farbverlauf, sonst Glas. Optional mit Symbol vor dem Text. */
+    static final class Btn extends LinearLayout {
+        final TextView label;
+        ImageView icon;
+
+        Btn(Context c, String iconName, String text, boolean primary) {
+            super(c);
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER);
+            setMinimumHeight(dp(c, 48));
+            setPadding(dp(c, 20), 0, dp(c, 20), 0);
+            setBackground(primary ? gradient(c, 26) : outlined(c, 0x1FFFFFFF, LINE, 26));
+            setClickable(true);
+            setFocusable(true);
+            if (primary) setElevation(dp(c, 3));
+            if (iconName != null) {
+                icon = Ui.icon(c, iconName, 20, Color.WHITE);
+                addView(icon);
+            }
+            label = text(c, text == null ? "" : text, 15, Color.WHITE, true);
+            label.setSingleLine(true);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            if (text != null && !text.isEmpty()) {
+                LayoutParams lp = new LayoutParams(-2, -2);
+                lp.leftMargin = iconName != null ? dp(c, 8) : 0;
+                addView(label, lp);
+            }
+        }
+
+        void setIcon(String name) { icon.setImageDrawable(Icons.drawable(name, Color.WHITE)); }
+    }
+
+    static Btn button(Context c, String label, boolean primary) { return new Btn(c, null, label, primary); }
+
+    static Btn button(Context c, String iconName, String label, boolean primary) { return new Btn(c, iconName, label, primary); }
+
+    /** Runder Symbol-Knopf (wie .icon-btn der PC-App). */
+    static ImageView iconButton(Context c, String name, float sizeDp, boolean glass) {
+        ImageView v = new ImageView(c);
+        v.setImageDrawable(Icons.drawable(name, TEXT));
+        int pad = dp(c, sizeDp * 0.27f);
+        v.setPadding(pad, pad, pad, pad);
+        v.setBackground(glass ? outlined(c, 0x14FFFFFF, LINE, sizeDp / 2) : null);
+        v.setClickable(true);
+        v.setFocusable(true);
+        v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, sizeDp), dp(c, sizeDp)));
+        return v;
+    }
+
+    static void setIconButton(ImageView v, String name) { v.setImageDrawable(Icons.drawable(name, TEXT)); }
+
+    /** Umschalt-Pille (.toggle-pill): ausgewaehlt = Farbverlauf. */
     static TextView chip(Context c, String label, boolean selected) {
-        TextView t = text(c, label, 14, selected ? Color.BLACK : TEXT, false);
+        TextView t = text(c, label, 14, TEXT, true);
         t.setGravity(Gravity.CENTER);
         t.setMinHeight(dp(c, 40));
         t.setPadding(dp(c, 16), 0, dp(c, 16), 0);
-        t.setBackground(round(selected ? ACCENT : CARD2, 20, c));
         t.setClickable(true);
+        restyleChip(t, selected);
         return t;
+    }
+
+    static void restyleChip(TextView t, boolean selected) {
+        Context c = t.getContext();
+        t.setBackground(selected ? gradient(c, 20) : round(0x14FFFFFF, 20, c));
+        t.setTextColor(selected ? Color.WHITE : Color.parseColor("#C8D2DC"));
+    }
+
+    /** Kleines Etikett (.chip der PC-App), z. B. "4K" oder "2020". */
+    static View badge(Context c, String text, String iconName) {
+        LinearLayout l = new LinearLayout(c);
+        l.setGravity(Gravity.CENTER_VERTICAL);
+        l.setPadding(dp(c, 8), dp(c, 3), dp(c, 8), dp(c, 3));
+        l.setBackground(outlined(c, 0x24FFFFFF, 0x2EFFFFFF, 7));
+        if (iconName != null) {
+            ImageView i = icon(c, iconName, 13, Color.parseColor("#FFC94D"));
+            ((LinearLayout.LayoutParams) i.getLayoutParams()).rightMargin = dp(c, 4);
+            l.addView(i);
+        }
+        l.addView(text(c, text, 12, TEXT, true));
+        return l;
+    }
+
+    /** Text mit Farbverlauf (Markenname). */
+    static TextView brand(Context c, String s, float sp) {
+        TextView t = text(c, s, sp, TEXT, true);
+        t.post(() -> {
+            float tw = t.getPaint().measureText(s);
+            t.getPaint().setShader(new android.graphics.LinearGradient(0, 0, tw, 0, ACCENT, ACCENT2, android.graphics.Shader.TileMode.CLAMP));
+            t.invalidate();
+        });
+        return t;
+    }
+
+    /** Rundes Bild-Etikett "gesehen" fuer Karten. */
+    static View checkBadge(Context c) {
+        FrameLayout f = new FrameLayout(c);
+        f.setBackground(gradient(c, 11));
+        ImageView i = icon(c, "check", 14, Color.WHITE);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(c, 14), dp(c, 14), Gravity.CENTER);
+        f.addView(i, lp);
+        return f;
     }
 
     static View space(Context c, int h) {

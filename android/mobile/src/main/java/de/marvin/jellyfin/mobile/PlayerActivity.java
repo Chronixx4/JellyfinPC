@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -72,7 +73,10 @@ public class PlayerActivity extends Activity {
 
     // Oberflaeche
     private View controls;
-    private TextView titleView, posView, durView, feedback, skipIntro, nextBtn, playPause;
+    private TextView titleView, posView, durView, feedbackText;
+    private LinearLayout feedback;
+    private ImageView feedbackIcon, playPause, lockBtn;
+    private View skipIntro, nextBtn;
     private SeekBar seek;
     private boolean controlsVisible, scrubbing;
 
@@ -95,8 +99,20 @@ public class PlayerActivity extends Activity {
 
     // ------------------------------------------------------------ Aufbau
 
-    private TextView iconBtn(String s, int sp) {
-        TextView t = Ui.text(this, s, sp, Color.WHITE, false);
+    /** Symbol-Knopf fuer die Bedienleiste (mindestens 52dp gross, gut mit dem Daumen zu treffen). */
+    private ImageView sym(String icon, int sizeDp) {
+        ImageView v = new ImageView(this);
+        v.setImageDrawable(Icons.drawable(icon, Color.WHITE));
+        int pad = Ui.dp(this, 14);
+        v.setPadding(pad, pad, pad, pad);
+        v.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        v.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, sizeDp), Ui.dp(this, sizeDp)));
+        v.setClickable(true);
+        return v;
+    }
+
+    private TextView txtBtn(String s) {
+        TextView t = Ui.text(this, s, 16, Color.WHITE, true);
         t.setGravity(Gravity.CENTER);
         t.setMinWidth(Ui.dp(this, 52));
         t.setMinHeight(Ui.dp(this, 52));
@@ -127,8 +143,8 @@ public class PlayerActivity extends Activity {
             @Override public boolean onDoubleTap(MotionEvent e) {
                 if (player == null || lockedControls) return true;
                 float x = e.getX() / root.getWidth();
-                if (x < 0.35f) { seekBy(-10000); flash("⏪ 10 s"); }
-                else if (x > 0.65f) { seekBy(10000); flash("10 s ⏩"); }
+                if (x < 0.35f) { seekBy(-10000); flash("rewind", "10 s"); }
+                else if (x > 0.65f) { seekBy(10000); flash("forward", "10 s"); }
                 else togglePlay();
                 return true;
             }
@@ -144,7 +160,7 @@ public class PlayerActivity extends Activity {
                 }
                 if (mode == 1) {
                     scrubTarget = clamp(scrubTarget - (long) (dx * 120), 0, duration());
-                    flash(fmt(scrubTarget) + " / " + fmt(duration()));
+                    flash(scrubTarget >= player.getCurrentPosition() ? "forward" : "rewind", fmt(scrubTarget) + " / " + fmt(duration()));
                     seek.setProgress((int) (scrubTarget / 1000));
                 } else if (mode == 2) {
                     adjustBrightness(dy / root.getHeight() * 1.4f);
@@ -167,9 +183,16 @@ public class PlayerActivity extends Activity {
         root.addView(touch, new FrameLayout.LayoutParams(-1, -1));
 
         // Hinweis-Text in der Mitte (Spulen, Lautstaerke ...)
-        feedback = Ui.text(this, "", 22, Color.WHITE, true);
-        feedback.setBackground(Ui.round(0xAA000000, 12, this));
-        feedback.setPadding(Ui.dp(this, 20), Ui.dp(this, 10), Ui.dp(this, 20), Ui.dp(this, 10));
+        feedback = new LinearLayout(this);
+        feedback.setGravity(Gravity.CENTER_VERTICAL);
+        feedback.setBackground(Ui.outlined(this, 0xCC0A0D12, Ui.LINE, 22));
+        feedback.setPadding(Ui.dp(this, 18), Ui.dp(this, 10), Ui.dp(this, 20), Ui.dp(this, 10));
+        feedbackIcon = new ImageView(this);
+        feedbackIcon.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 24), Ui.dp(this, 24)));
+        feedbackText = Ui.text(this, "", 20, Color.WHITE, true);
+        feedbackText.setPadding(Ui.dp(this, 10), 0, 0, 0);
+        feedback.addView(feedbackIcon);
+        feedback.addView(feedbackText);
         feedback.setVisibility(View.GONE);
         root.addView(feedback, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
         ((FrameLayout.LayoutParams) feedback.getLayoutParams()).topMargin = Ui.dp(this, 48);
@@ -182,49 +205,52 @@ public class PlayerActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(Ui.dp(this, 8), Ui.dp(this, 4), Ui.dp(this, 8), 0);
-        TextView back = iconBtn("←", 26);
+        ImageView back = sym("back", 52);
         back.setOnClickListener(v -> finish());
         top.addView(back);
         titleView = Ui.text(this, "", 17, Color.WHITE, true);
         titleView.setSingleLine(true);
         titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         top.addView(titleView, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView speed = iconBtn("1×", 16);
+        TextView speed = txtBtn("1×");
         speed.setOnClickListener(v -> speedDialog(speed));
         top.addView(speed);
-        TextView tracks = iconBtn("💬", 20);
+        ImageView tracks = sym("subtitles", 52);
         tracks.setOnClickListener(v -> trackDialog());
         top.addView(tracks);
-        TextView chap = iconBtn("☰", 20);
+        ImageView chap = sym("list", 52);
         chap.setOnClickListener(v -> chapterDialog());
         top.addView(chap);
-        TextView aspect = iconBtn("⤢", 20);
+        ImageView aspect = sym("fit", 52);
         aspect.setOnClickListener(v -> {
             boolean fit = pv.getResizeMode() == AspectRatioFrameLayout.RESIZE_MODE_FIT;
             pv.setResizeMode(fit ? AspectRatioFrameLayout.RESIZE_MODE_ZOOM : AspectRatioFrameLayout.RESIZE_MODE_FIT);
-            flash(fit ? "Bild füllen" : "Bild einpassen");
+            flash("fit", fit ? "Bild füllen" : "Bild einpassen");
         });
         top.addView(aspect);
-        TextView lock = iconBtn("🔓", 20);
-        lock.setOnClickListener(v -> {
+        lockBtn = sym("lockOpen", 52);
+        lockBtn.setOnClickListener(v -> {
             lockedControls = true;
             hideControls();
-            flash("Gesperrt – zum Entsperren tippen");
+            flash("lock", "Gesperrt – zum Entsperren tippen");
         });
-        top.addView(lock);
+        top.addView(lockBtn);
         c.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
         // Mitte: -10 / Pause / +10
         LinearLayout mid = new LinearLayout(this);
         mid.setGravity(Gravity.CENTER);
-        TextView rew = iconBtn("⏪", 30);
+        ImageView rew = sym("rewind", 72);
         rew.setOnClickListener(v -> { seekBy(-10000); showControls(); });
-        playPause = iconBtn("⏸", 44);
+        playPause = sym("pause", 88);
+        playPause.setBackground(Ui.gradient(this, 44));
+        int pp = Ui.dp(this, 24);
+        playPause.setPadding(pp, pp, pp, pp);
         playPause.setOnClickListener(v -> togglePlay());
-        TextView fwd = iconBtn("⏩", 30);
+        ImageView fwd = sym("forward", 72);
         fwd.setOnClickListener(v -> { seekBy(10000); showControls(); });
-        for (TextView t : new TextView[]{rew, playPause, fwd}) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(this, 72), Ui.dp(this, 72));
+        for (ImageView t : new ImageView[]{rew, playPause, fwd}) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(t.getLayoutParams().width, t.getLayoutParams().height);
             lp.setMargins(Ui.dp(this, 14), 0, Ui.dp(this, 14), 0);
             mid.addView(t, lp);
         }
@@ -238,8 +264,8 @@ public class PlayerActivity extends Activity {
         durView = Ui.text(this, "0:00", 13, Color.WHITE, false);
         seek = new SeekBar(this);
         seek.setMinimumHeight(Ui.dp(this, 48));
-        seek.getProgressDrawable().setTint(Ui.ACCENT);
-        seek.getThumb().setTint(Ui.ACCENT);
+        seek.getProgressDrawable().setTint(Ui.ACCENT2);
+        seek.getThumb().setTint(Color.WHITE);
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar s, int p, boolean user) {
                 if (user) { posView.setText(fmt(p * 1000L)); h.removeCallbacks(hideRun); }
@@ -260,15 +286,15 @@ public class PlayerActivity extends Activity {
         c.setOnTouchListener((v, e) -> touch.dispatchTouchEvent(e));
         controlsVisible = true;
 
-        skipIntro = Ui.button(this, "Vorspann überspringen ⏭", false);
-        skipIntro.setBackground(Ui.round(0xDD000000, 24, this));
+        skipIntro = Ui.button(this, "next", "Vorspann überspringen", false);
+        skipIntro.setBackground(Ui.outlined(this, 0xE60A0D12, 0x55FFFFFF, 26));
         skipIntro.setVisibility(View.GONE);
         skipIntro.setOnClickListener(v -> { if (player != null && introEndMs > 0) player.seekTo(introEndMs); });
         FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         sl.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
         root.addView(skipIntro, sl);
 
-        nextBtn = Ui.button(this, "Nächste Folge ⏭", true);
+        nextBtn = Ui.button(this, "next", "Nächste Folge", true);
         nextBtn.setVisibility(View.GONE);
         nextBtn.setOnClickListener(v -> playNext());
         FrameLayout.LayoutParams nl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
@@ -484,8 +510,8 @@ public class PlayerActivity extends Activity {
     }
 
     private void updatePlayIcon() {
-        if (player != null) playPause.setText(player.isPlaying() || player.getPlayWhenReady()
-                && player.getPlaybackState() != Player.STATE_ENDED ? "⏸" : "▶");
+        if (player != null) playPause.setImageDrawable(Icons.drawable(player.isPlaying() || player.getPlayWhenReady()
+                && player.getPlaybackState() != Player.STATE_ENDED ? "pause" : "play", Color.WHITE));
     }
 
     private final Runnable hideRun = this::hideControls;
@@ -507,8 +533,9 @@ public class PlayerActivity extends Activity {
         if (player != null && player.isPlaying() && controlsVisible) h.postDelayed(hideRun, 3500);
     }
 
-    private void flash(String s) {
-        feedback.setText(s);
+    private void flash(String icon, String s) {
+        feedbackIcon.setImageDrawable(Icons.drawable(icon, Color.WHITE));
+        feedbackText.setText(s);
         feedback.setVisibility(View.VISIBLE);
     }
 
@@ -518,7 +545,7 @@ public class PlayerActivity extends Activity {
         brightness = Math.max(0.02f, Math.min(1f, brightness - delta));
         lp.screenBrightness = brightness;
         getWindow().setAttributes(lp);
-        flash("☀ " + Math.round(brightness * 100) + " %");
+        flash("brightness", Math.round(brightness * 100) + " %");
     }
 
     private void adjustVolume(float delta) {
@@ -530,7 +557,7 @@ public class PlayerActivity extends Activity {
             int v = Math.max(0, Math.min(max, audio.getStreamVolume(AudioManager.STREAM_MUSIC) + step));
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0);
         }
-        flash("🔊 " + Math.round(audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max) + " %");
+        flash("volume", Math.round(audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max) + " %");
     }
 
     private static String fmt(long ms) {
@@ -571,6 +598,7 @@ public class PlayerActivity extends Activity {
         return s;
     }
 
+    /** Ton- und Untertitelwahl als Dialog mit Auswahlknoepfen (je ein Abschnitt). */
     private void trackDialog() {
         if (player == null) return;
         if (transcoding) {
@@ -578,36 +606,79 @@ public class PlayerActivity extends Activity {
             return;
         }
         Tracks tr = player.getCurrentTracks();
-        ArrayList<String> names = new ArrayList<>();
-        ArrayList<Runnable> acts = new ArrayList<>();
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = Ui.dp(this, 20);
+        box.setPadding(pad, Ui.dp(this, 8), pad, 0);
+        final AlertDialog[] dlg = new AlertDialog[1];
+        boolean any = false;
+
+        android.widget.RadioGroup audioGroup = new android.widget.RadioGroup(this);
         int ai = 0;
         for (Tracks.Group g : tr.getGroups()) {
             if (g.getType() != C.TRACK_TYPE_AUDIO || g.length == 0) continue;
             final TrackGroup tg = g.getMediaTrackGroup();
-            names.add((g.isSelected() ? "● " : "○ ") + "Ton: " + trackName(g.getTrackFormat(0), ai++));
-            acts.add(() -> player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-                    .setOverrideForType(new TrackSelectionOverride(tg, 0)).build()));
+            android.widget.RadioButton rb = radio(trackName(g.getTrackFormat(0), ai++), g.isSelected());
+            rb.setOnClickListener(v -> {
+                player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                        .setOverrideForType(new TrackSelectionOverride(tg, 0)).build());
+                dlg[0].dismiss();
+            });
+            audioGroup.addView(rb);
         }
-        boolean anyText = false, textOn = false;
+        if (audioGroup.getChildCount() > 0) {
+            any = true;
+            box.addView(sectionTitle("Ton"));
+            box.addView(audioGroup);
+        }
+
+        android.widget.RadioGroup subGroup = new android.widget.RadioGroup(this);
+        boolean textOn = false;
         int si = 0;
         for (Tracks.Group g : tr.getGroups()) {
             if (g.getType() != C.TRACK_TYPE_TEXT || g.length == 0) continue;
-            anyText = true;
             textOn |= g.isSelected();
             final TrackGroup tg = g.getMediaTrackGroup();
-            names.add((g.isSelected() ? "● " : "○ ") + "Untertitel: " + trackName(g.getTrackFormat(0), si++));
-            acts.add(() -> player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                    .setOverrideForType(new TrackSelectionOverride(tg, 0)).build()));
+            android.widget.RadioButton rb = radio(trackName(g.getTrackFormat(0), si++), g.isSelected());
+            rb.setOnClickListener(v -> {
+                player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .setOverrideForType(new TrackSelectionOverride(tg, 0)).build());
+                dlg[0].dismiss();
+            });
+            subGroup.addView(rb);
         }
-        if (anyText) {
-            names.add((textOn ? "○ " : "● ") + "Untertitel aus");
-            acts.add(() -> player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()));
+        if (subGroup.getChildCount() > 0) {
+            any = true;
+            android.widget.RadioButton off = radio("Aus", !textOn);
+            off.setOnClickListener(v -> {
+                player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build());
+                dlg[0].dismiss();
+            });
+            subGroup.addView(off, 0);
+            box.addView(sectionTitle("Untertitel"));
+            box.addView(subGroup);
         }
-        if (names.isEmpty()) { Toast.makeText(this, "Keine Ton-/Untertitelspuren", Toast.LENGTH_SHORT).show(); return; }
-        new AlertDialog.Builder(this).setTitle("Ton & Untertitel")
-                .setItems(names.toArray(new String[0]), (d, i) -> acts.get(i).run()).show();
+        if (!any) { Toast.makeText(this, "Keine Ton-/Untertitelspuren", Toast.LENGTH_SHORT).show(); return; }
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.addView(box);
+        dlg[0] = new AlertDialog.Builder(this).setTitle("Ton & Untertitel").setView(sv).show();
+    }
+
+    private TextView sectionTitle(String s) {
+        TextView t = Ui.text(this, s, 13, Ui.MUTED, true);
+        t.setPadding(0, Ui.dp(this, 12), 0, Ui.dp(this, 4));
+        return t;
+    }
+
+    private android.widget.RadioButton radio(String label, boolean checked) {
+        android.widget.RadioButton rb = new android.widget.RadioButton(this);
+        rb.setText(label);
+        rb.setChecked(checked);
+        rb.setMinHeight(Ui.dp(this, 48));
+        rb.setButtonTintList(android.content.res.ColorStateList.valueOf(Ui.ACCENT));
+        return rb;
     }
 
     // ------------------------------------------------------------ Lebenszyklus

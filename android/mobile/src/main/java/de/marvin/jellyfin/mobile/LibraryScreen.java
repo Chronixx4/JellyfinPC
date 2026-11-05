@@ -50,8 +50,14 @@ final class LibraryScreen extends GridScreen {
         chips.removeAllViews();
         for (int i = 0; i < SORT_LABEL.length; i++) {
             final int idx = i;
-            String l = SORT_LABEL[i] + (sort == i ? (desc ? " ↓" : " ↑") : "");
-            TextView c = Ui.chip(a, l, sort == i);
+            TextView c = Ui.chip(a, SORT_LABEL[i], sort == i);
+            if (sort == i) {
+                c.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, null, null);
+                android.graphics.drawable.Drawable d = Icons.drawable(desc ? "down" : "up", android.graphics.Color.WHITE);
+                d.setBounds(0, 0, Ui.dp(a, 14), Ui.dp(a, 14));
+                c.setCompoundDrawablesRelative(null, null, d, null);
+                c.setCompoundDrawablePadding(Ui.dp(a, 4));
+            }
             c.setOnClickListener(v -> {
                 if (sort == idx) desc = !desc; else { sort = idx; desc = idx != 0; }
                 run();

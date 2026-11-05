@@ -57,19 +57,17 @@ final class Cards {
             col.setLayoutParams(lp);
 
             FrameLayout frame = new FrameLayout(a);
-            frame.setBackground(Ui.round(Ui.CARD, 10, a));
+            frame.setBackground(Ui.outlined(a, Ui.CARD, 0x14FFFFFF, 12));
             frame.setClipToOutline(true);
             ImageView img = new ImageView(a);
             img.setScaleType(ImageView.ScaleType.CENTER_CROP);
             frame.addView(img, new FrameLayout.LayoutParams(-1, -1));
-            TextView badge = Ui.text(a, "✓", 12, Color.BLACK, true);
-            badge.setGravity(Gravity.CENTER);
-            badge.setBackground(Ui.round(Ui.ACCENT, 11, a));
+            View badge = Ui.checkBadge(a);
             FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Ui.dp(a, 22), Ui.dp(a, 22), Gravity.TOP | Gravity.END);
             bl.setMargins(0, Ui.dp(a, 6), Ui.dp(a, 6), 0);
             frame.addView(badge, bl);
             View bar = new View(a);
-            bar.setBackgroundColor(Ui.ACCENT);
+            bar.setBackground(Ui.gradient(a, 2));
             frame.addView(bar, new FrameLayout.LayoutParams(0, Ui.dp(a, 4), Gravity.BOTTOM | Gravity.START));
             col.addView(frame, new LinearLayout.LayoutParams(-1, -2));
 

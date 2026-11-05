@@ -42,9 +42,8 @@ final class DetailScreen extends Screen {
         sv.addView(col, new ScrollView.LayoutParams(-1, -2));
         frame.addView(sv, new FrameLayout.LayoutParams(-1, -1));
 
-        TextView back = Ui.text(a, "←", 24, Ui.TEXT, false);
-        back.setGravity(Gravity.CENTER);
-        back.setBackground(Ui.round(0x99000000, 24, a));
+        ImageView back = Ui.iconButton(a, "back", 44, true);
+        back.setBackground(Ui.outlined(a, 0x99000000, Ui.LINE, 22));
         back.setOnClickListener(v -> a.pop());
         FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Ui.dp(a, 44), Ui.dp(a, 44), Gravity.TOP | Gravity.START);
         bl.setMargins(Ui.dp(a, 10), Ui.dp(a, 10), 0, 0);
@@ -95,6 +94,12 @@ final class DetailScreen extends Screen {
         }, true);
     }
 
+    private void addMeta(LinearLayout row, View v) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.rightMargin = Ui.dp(a, 6);
+        row.addView(v, lp);
+    }
+
     private TextView pill(String s) {
         TextView t = Ui.text(a, s, 12, Ui.TEXT, true);
         t.setPadding(Ui.dp(a, 8), Ui.dp(a, 3), Ui.dp(a, 8), Ui.dp(a, 3));
@@ -113,9 +118,9 @@ final class DetailScreen extends Screen {
         Ui.load(bd, url);
         hero.addView(bd, new FrameLayout.LayoutParams(-1, -1));
         View fade = new View(a);
-        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x00000000, Ui.BG}));
+        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x330A0D12, 0x990A0D12, Ui.BG}));
         hero.addView(fade, new FrameLayout.LayoutParams(-1, -1));
-        col.addView(hero, new LinearLayout.LayoutParams(-1, Ui.dp(a, 230)));
+        col.addView(hero, new LinearLayout.LayoutParams(-1, Ui.dp(a, 250)));
 
         int pad = Ui.dp(a, 16);
         LinearLayout body = new LinearLayout(a);
@@ -124,20 +129,19 @@ final class DetailScreen extends Screen {
         col.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
         String head = "Episode".equals(item.type) && !item.seriesName.isEmpty() ? item.seriesName : item.name;
-        TextView title = Ui.text(a, head, 26, Ui.TEXT, true);
+        TextView title = Ui.text(a, head, 30, Ui.TEXT, true);
+        title.setShadowLayer(8, 0, 2, 0xCC000000);
         body.addView(title);
         if ("Episode".equals(item.type)) body.addView(Ui.text(a, item.title(), 15, Ui.MUTED, false));
 
-        StringBuilder meta = new StringBuilder();
-        if (item.year > 0) meta.append(item.year);
-        if (!item.officialRating.isEmpty()) meta.append(meta.length() > 0 ? "  ·  " : "").append(item.officialRating);
-        if (item.runTicks > 0) meta.append(meta.length() > 0 ? "  ·  " : "").append(item.runtime());
-        if (item.rating > 0) meta.append(meta.length() > 0 ? "  ·  " : "").append("★ ").append(String.format(java.util.Locale.GERMANY, "%.1f", item.rating));
-        if (meta.length() > 0) {
-            TextView m = Ui.text(a, meta.toString(), 14, Ui.MUTED, false);
-            m.setPadding(0, Ui.dp(a, 4), 0, 0);
-            body.addView(m);
-        }
+        LinearLayout meta = new LinearLayout(a);
+        meta.setGravity(Gravity.CENTER_VERTICAL);
+        meta.setPadding(0, Ui.dp(a, 8), 0, 0);
+        if (item.year > 0) addMeta(meta, Ui.badge(a, String.valueOf(item.year), null));
+        if (item.rating > 0) addMeta(meta, Ui.badge(a, String.format(java.util.Locale.GERMANY, "%.1f", item.rating), "star"));
+        if (!item.officialRating.isEmpty()) addMeta(meta, Ui.badge(a, item.officialRating, null));
+        if (item.runTicks > 0) addMeta(meta, Ui.badge(a, item.runtime(), null));
+        if (meta.getChildCount() > 0) body.addView(meta);
         if (!item.genres.isEmpty()) {
             TextView g = Ui.text(a, item.genres, 14, Ui.MUTED, false);
             g.setPadding(0, Ui.dp(a, 2), 0, 0);
@@ -147,51 +151,44 @@ final class DetailScreen extends Screen {
         if (!badges.isEmpty()) {
             LinearLayout row = new LinearLayout(a);
             row.setPadding(0, Ui.dp(a, 10), 0, 0);
-            for (String b : badges) {
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-                lp.rightMargin = Ui.dp(a, 6);
-                row.addView(pill(b), lp);
-            }
+            for (String b : badges) addMeta(row, Ui.badge(a, b, null));
             body.addView(row);
         }
 
-        // Knoepfe
+        // Knoepfe (wie auf der PC-Detailseite: Verlaufsknopf, Glasknopf, runde Symbolknoepfe)
         JfItem target = "Series".equals(item.type) ? nextUp : item;
         LinearLayout btns = new LinearLayout(a);
+        btns.setGravity(Gravity.CENTER_VERTICAL);
         btns.setPadding(0, Ui.dp(a, 16), 0, 0);
         if (item.isPlayable() || target != null) {
             JfItem t = target != null ? target : item;
             boolean resume = t.resumeTicks > 0;
-            String label = resume ? "▶ Fortsetzen" : "▶ Abspielen";
+            String label = resume ? "Fortsetzen" : "Abspielen";
             if ("Series".equals(item.type)) label += "  " + t.title();
-            TextView play = Ui.button(a, label, true);
-            play.setSingleLine(true);
-            play.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            Ui.Btn play = Ui.button(a, "play", label, true);
             play.setOnClickListener(v -> a.play(t, t.resumeTicks));
             btns.addView(play, new LinearLayout.LayoutParams(0, -2, 1));
             if (resume) {
-                TextView again = Ui.button(a, "⟲", false);
+                ImageView again = Ui.iconButton(a, "restart", 48, true);
                 again.setOnClickListener(v -> a.play(t, 0));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 52), -2);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
                 lp.leftMargin = Ui.dp(a, 8);
                 btns.addView(again, lp);
             }
-        } else if ("Series".equals(item.type)) {
-            // noch keine Folge geladen
         }
-        TextView fav = Ui.button(a, item.favorite ? "♥" : "♡", false);
+        ImageView fav = Ui.iconButton(a, item.favorite ? "heartOn" : "heart", 48, true);
         fav.setOnClickListener(v -> a.bg(() -> { a.jf.setFavorite(item.id, !item.favorite); return true; }, ok -> { if (ok != null) refresh(); }));
-        TextView seen = Ui.button(a, item.played ? "✓" : "○", false);
+        ImageView seen = Ui.iconButton(a, item.played ? "checkCircle" : "circle", 48, true);
         seen.setOnClickListener(v -> a.bg(() -> { a.jf.setPlayed(item.id, !item.played); return true; }, ok -> { if (ok != null) refresh(); }));
-        for (TextView t : new TextView[]{fav, seen}) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 52), -2);
+        for (ImageView t : new ImageView[]{fav, seen}) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
             lp.leftMargin = Ui.dp(a, 8);
             btns.addView(t, lp);
         }
         body.addView(btns);
 
         if (!item.tagline.isEmpty()) {
-            TextView tl = Ui.text(a, item.tagline, 15, Ui.ACCENT, false);
+            TextView tl = Ui.text(a, item.tagline, 15, Ui.ACCENT2, false);
             tl.setTypeface(null, android.graphics.Typeface.ITALIC);
             tl.setPadding(0, Ui.dp(a, 16), 0, 0);
             body.addView(tl);
@@ -312,8 +309,7 @@ final class DetailScreen extends Screen {
         seasonId = sid;
         for (TextView c : chipViews) {
             boolean sel = sid.equals(c.getTag());
-            c.setBackground(Ui.round(sel ? Ui.ACCENT : Ui.CARD2, 20, a));
-            c.setTextColor(sel ? android.graphics.Color.BLACK : Ui.TEXT);
+            Ui.restyleChip(c, sel);
         }
         if (episodes == null) return;
         a.bg(() -> a.jf.episodes(item.id, sid), list -> {
@@ -327,7 +323,7 @@ final class DetailScreen extends Screen {
         LinearLayout row = new LinearLayout(a);
         row.setPadding(0, Ui.dp(a, 8), 0, Ui.dp(a, 8));
         FrameLayout th = new FrameLayout(a);
-        th.setBackground(Ui.round(Ui.CARD, 8, a));
+        th.setBackground(Ui.outlined(a, Ui.CARD, 0x14FFFFFF, 10));
         th.setClipToOutline(true);
         ImageView im = new ImageView(a);
         im.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -337,7 +333,7 @@ final class DetailScreen extends Screen {
             ProgressBar pb = new ProgressBar(a, null, android.R.attr.progressBarStyleHorizontal);
             pb.setMax(1000);
             pb.setProgress((int) (ep.progress() * 1000));
-            pb.getProgressDrawable().setTint(Ui.ACCENT);
+            pb.getProgressDrawable().setTint(Ui.ACCENT2);
             th.addView(pb, new FrameLayout.LayoutParams(-1, Ui.dp(a, 4), Gravity.BOTTOM));
         }
         row.addView(th, new LinearLayout.LayoutParams(Ui.dp(a, 130), Ui.dp(a, 74)));
@@ -345,8 +341,14 @@ final class DetailScreen extends Screen {
         LinearLayout txt = new LinearLayout(a);
         txt.setOrientation(LinearLayout.VERTICAL);
         txt.setPadding(Ui.dp(a, 12), 0, 0, 0);
-        TextView t = Ui.text(a, (ep.episodeNo > 0 ? ep.episodeNo + ". " : "") + ep.name + (ep.played ? "  ✓" : ""), 14, Ui.TEXT, true);
+        TextView t = Ui.text(a, (ep.episodeNo > 0 ? ep.episodeNo + ". " : "") + ep.name, 14, Ui.TEXT, true);
         t.setMaxLines(2);
+        if (ep.played) {
+            android.graphics.drawable.Drawable d = Icons.drawable("checkCircle", Ui.ACCENT2);
+            d.setBounds(0, 0, Ui.dp(a, 16), Ui.dp(a, 16));
+            t.setCompoundDrawablesRelative(null, null, d, null);
+            t.setCompoundDrawablePadding(Ui.dp(a, 6));
+        }
         txt.addView(t);
         TextView r = Ui.text(a, ep.runtime(), 12, Ui.MUTED, false);
         txt.addView(r);
