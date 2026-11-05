@@ -29,8 +29,31 @@ final class Ui {
     static final int CARD2 = Color.parseColor("#1D232C");
     static final int GLASS = Color.parseColor("#E6121822");
     static final int LINE = Color.parseColor("#1AFFFFFF");
-    static final int ACCENT = Color.parseColor("#8B6CFF");
-    static final int ACCENT2 = Color.parseColor("#19A8FF");
+    // Akzentfarben: wie PC-App umschaltbar (Farbdesign), daher nicht final
+    static int ACCENT = Color.parseColor("#8B6CFF");
+    static int ACCENT2 = Color.parseColor("#19A8FF");
+    /** Dieselben Farbdesigns wie in der PC-App (Name, Akzent 1, Akzent 2). */
+    static final String[][] THEMES = {
+            {"Violett", "#8b6cff", "#19a8ff"}, {"Ozean", "#19a8ff", "#19e0c0"}, {"Sonnenuntergang", "#ff6b5e", "#ffb347"},
+            {"Rose", "#ff5fa2", "#a06bff"}, {"Wald", "#2ecc71", "#19c1c8"}, {"Gold", "#f5b942", "#ff7a45"}};
+
+    static void setTheme(String name) {
+        for (String[] t : THEMES) if (t[0].equals(name)) { ACCENT = Color.parseColor(t[1]); ACCENT2 = Color.parseColor(t[2]); }
+    }
+
+    /** Fokus-Rahmen und leichtes Vergroessern, damit die Bedienung per Controller/Tastatur sichtbar ist. */
+    static void focusFx(View v) {
+        v.setFocusable(true);
+        v.setOnFocusChangeListener((x, f) -> {
+            x.animate().scaleX(f ? 1.05f : 1f).scaleY(f ? 1.05f : 1f).setDuration(120).start();
+            if (f) {
+                GradientDrawable ring = new GradientDrawable();
+                ring.setCornerRadius(dp(x.getContext(), 14));
+                ring.setStroke(dp(x.getContext(), 3), ACCENT2);
+                x.setForeground(ring);
+            } else x.setForeground(null);
+        });
+    }
     static final int TEXT = Color.parseColor("#EEF2F6");
     static final int MUTED = Color.parseColor("#8B98A8");
 
@@ -88,7 +111,7 @@ final class Ui {
             setPadding(dp(c, 20), 0, dp(c, 20), 0);
             setBackground(primary ? gradient(c, 26) : outlined(c, 0x1FFFFFFF, LINE, 26));
             setClickable(true);
-            setFocusable(true);
+            focusFx(this);
             if (primary) setElevation(dp(c, 3));
             if (iconName != null) {
                 icon = Ui.icon(c, iconName, 20, Color.WHITE);
@@ -119,7 +142,7 @@ final class Ui {
         v.setPadding(pad, pad, pad, pad);
         v.setBackground(glass ? outlined(c, 0x14FFFFFF, LINE, sizeDp / 2) : null);
         v.setClickable(true);
-        v.setFocusable(true);
+        focusFx(v);
         v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, sizeDp), dp(c, sizeDp)));
         return v;
     }
@@ -133,6 +156,7 @@ final class Ui {
         t.setMinHeight(dp(c, 40));
         t.setPadding(dp(c, 16), 0, dp(c, 16), 0);
         t.setClickable(true);
+        focusFx(t);
         restyleChip(t, selected);
         return t;
     }
