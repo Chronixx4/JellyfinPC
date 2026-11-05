@@ -14,4 +14,5 @@ dependencyResolutionManagement {
 rootProject.name = "JellyfinAndroid"
 // core   = gemeinsame Jellyfin-Logik (REST-Client, Datenmodelle) fuer Handy und spaeter TV/Fire TV
 // mobile = Handy/Tablet-App mit Touch-Bedienung
-include ':core', ':mobile'
+// tv     = Android-TV-/Fire-TV-App mit Fernbedienungs-Bedienung (D-Pad)
+include ':core', ':mobile', ':tv'

@@ -1,23 +1,23 @@
 {
   "windows": {
-    "build": 30,
-    "version": "3.0",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinPC.exe",
-    "md5": "5bdfb8825e22ccd18ae2f5049e47771d",
-    "notes": "Gleiche Icons wie die Handy-App, Emojis ersetzt."
+    "build": 32,
+    "version": "3.2",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.2/JellyfinPC.exe",
+    "md5": "4e86eea225396d20d9416477d1a9be89",
+    "notes": "Handy als Fernbedienung: die PC-App ist jetzt vom Handy aus steuerbar (Abspielen, Pause, Springen, Lautstärke)."
   },
   "tv": {
-    "build": 0,
-    "version": "",
-    "url": "",
-    "md5": "",
+    "build": 32,
+    "version": "3.2",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.2/JellyfinTV.apk",
+    "md5": "815cd453f87f0e0b531dd1ce3a47df3e",
     "notes": ""
   },
   "mobile": {
-    "build": 30,
-    "version": "3.0",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinMobile.apk",
-    "md5": "975399a3fe98a3bb43c81199ca5726b4",
-    "notes": "Neu: Gemeinsam schauen, Controller-Steuerung, Farbdesigns, Bildschirmschoner, Vorschau-Video im Banner."
+    "build": 32,
+    "version": "3.2",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.2/JellyfinMobile.apk",
+    "md5": "dc58dd585a4b9669083bde8c80d3132f",
+    "notes": "Neu: Fernbedienung (TV-Symbol oben) und „Auf Gerät abspielen“ auf der Detailseite steuern die PC-App."
   }
 }

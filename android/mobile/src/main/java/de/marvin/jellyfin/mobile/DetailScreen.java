@@ -175,6 +175,11 @@ final class DetailScreen extends Screen {
                 lp.leftMargin = Ui.dp(a, 8);
                 btns.addView(again, lp);
             }
+            ImageView cast = Ui.iconButton(a, "tv", 48, true);
+            cast.setOnClickListener(v -> RemoteScreen.pickAndPlay(a, t, t.resumeTicks));
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
+            cp.leftMargin = Ui.dp(a, 8);
+            btns.addView(cast, cp);
         }
         ImageView fav = Ui.iconButton(a, item.favorite ? "heartOn" : "heart", 48, true);
         fav.setOnClickListener(v -> a.bg(() -> { a.jf.setFavorite(item.id, !item.favorite); return true; }, ok -> { if (ok != null) refresh(); }));

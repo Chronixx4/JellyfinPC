@@ -44,9 +44,14 @@ final class HomeScreen extends Screen {
         bar.addView(Ui.brand(a, "Jellyfin", 24), new LinearLayout.LayoutParams(0, -2, 1));
         ImageView search = Ui.iconButton(a, "search", 44, true);
         search.setOnClickListener(v -> a.push(new SearchScreen(a)));
+        ImageView remote = Ui.iconButton(a, "tv", 44, true);
+        remote.setOnClickListener(v -> a.push(new RemoteScreen(a)));
         ImageView settings = Ui.iconButton(a, "settings", 44, true);
         settings.setOnClickListener(v -> a.push(new AccountScreen(a)));
         bar.addView(search);
+        LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(Ui.dp(a, 44), Ui.dp(a, 44));
+        rl.leftMargin = Ui.dp(a, 8);
+        bar.addView(remote, rl);
         LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(Ui.dp(a, 44), Ui.dp(a, 44));
         sl.leftMargin = Ui.dp(a, 8);
         sl.rightMargin = Ui.dp(a, 8);

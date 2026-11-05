@@ -230,6 +230,7 @@ public final class App extends Application {
             ud.setOnFinished(e -> checkUpdate(true));
             ud.play();
         }
+        startRemote();
         if (jf.loggedIn()) {
             jf.saveProfile(); // bestehenden Login als Profil merken
             if (System.getProperty("jf.fakeprofile") != null) { // nur zum Testen
@@ -2168,6 +2169,38 @@ public final class App extends Application {
             if (player != null) { player.close(); Platform.runLater(go); } else go.run();
         });
     }
+
+    // ------------------------------------------------------------ Fernsteuerung (Handy -> PC)
+
+    private Remote remote;
+
+    private void startRemote() {
+        if (remote == null) remote = new Remote(jf, this);
+        remote.start();
+    }
+
+    /** Das Handy befiehlt, einen Titel abzuspielen. */
+    void remotePlay(String itemId, long startTicks, String cmd) {
+        bg(() -> jf.item(itemId), it -> {
+            it.resumeTicks = startTicks;
+            Runnable go = () -> { syncStarting = true; try { play(it); } finally { syncStarting = false; } };
+            if (player != null) { player.close(); Platform.runLater(go); } else go.run();
+            if (!stage.isShowing()) stage.show();
+            stage.setIconified(false);
+            stage.toFront();
+            toast("📱  Vom Handy gestartet: " + it.title());
+        });
+    }
+
+    void remotePlaystate(String command, long seekMs) {
+        if (player != null) player.remote(command, seekMs);
+    }
+
+    void remoteVolume(int v) { if (player != null) player.remoteVolume(v); }
+
+    void remoteVolumeDelta(int d) { if (player != null) player.remoteVolumeDelta(d); }
+
+    void remoteMute(int mode) { if (player != null) player.remoteMute(mode); }
 
     void syncCommand(String cmd, long posMs, long delayMs) {
         if (player != null) player.syncCommand(cmd, posMs, delayMs);
