@@ -58,8 +58,45 @@ final class AccountScreen extends Screen {
                 (b, on) -> a.prefs.edit().putBoolean("alwaysTranscode", on).apply()));
         col.addView(toggle("Beim Start nach Updates suchen", a.prefs.getBoolean("updateAuto", true),
                 (b, on) -> a.prefs.edit().putBoolean("updateAuto", on).apply()));
+        col.addView(toggle("Vorschau-Video im Banner", a.prefs.getBoolean("heroVideo", true),
+                (b, on) -> a.prefs.edit().putBoolean("heroVideo", on).apply()));
+        col.addView(toggle("Bildschirmschoner nach 3 Minuten Ruhe (Startseite)", a.prefs.getBoolean("screensaver", true),
+                (b, on) -> { a.prefs.edit().putBoolean("screensaver", on).apply(); a.touchIdle(); }));
+        col.addView(Ui.space(a, 12));
+
+        // Farbdesign wie in der PC-App
+        col.addView(Ui.text(a, "Farbdesign", 16, Ui.TEXT, true));
+        android.widget.HorizontalScrollView ths = new android.widget.HorizontalScrollView(a);
+        ths.setHorizontalScrollBarEnabled(false);
+        LinearLayout trow = new LinearLayout(a);
+        trow.setPadding(0, Ui.dp(a, 8), 0, 0);
+        String cur = a.prefs.getString("theme", "Violett");
+        for (String[] t : Ui.THEMES) {
+            TextView c = Ui.chip(a, t[0], t[0].equals(cur));
+            android.graphics.drawable.GradientDrawable dot = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{android.graphics.Color.parseColor(t[1]), android.graphics.Color.parseColor(t[2])});
+            dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            dot.setSize(Ui.dp(a, 14), Ui.dp(a, 14));
+            c.setCompoundDrawablesRelativeWithIntrinsicBounds(dot, null, null, null);
+            c.setCompoundDrawablePadding(Ui.dp(a, 8));
+            c.setOnClickListener(v -> {
+                a.prefs.edit().putString("theme", t[0]).apply();
+                Ui.setTheme(t[0]);
+                a.reset(new HomeScreen(a));
+                a.push(new AccountScreen(a));
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.rightMargin = Ui.dp(a, 8);
+            trow.addView(c, lp);
+        }
+        ths.addView(trow);
+        col.addView(ths);
         col.addView(Ui.space(a, 16));
 
+        Ui.Btn sync = Ui.button(a, "group", "Gemeinsam schauen", false);
+        sync.setOnClickListener(v -> a.push(new SyncScreen(a)));
+        col.addView(sync, gap());
         Ui.Btn stats = Ui.button(a, "stats", "Statistik", false);
         stats.setOnClickListener(v -> a.push(new StatsScreen(a)));
         col.addView(stats, gap());

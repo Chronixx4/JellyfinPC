@@ -14,6 +14,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Rational;
 import android.view.GestureDetector;
+import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -71,6 +73,9 @@ public class PlayerActivity extends Activity {
     private String localFile;
     private boolean transcoding, started, lockedControls, reportedStop, switching;
     private long lastReport;
+    static PlayerActivity current;
+    private boolean groupStart;     // Start auf Befehl der Gruppe: pausiert warten, bis alle bereit sind
+    private long syncStartMs;
 
     // Oberflaeche
     private View controls;
@@ -96,6 +101,9 @@ public class PlayerActivity extends Activity {
         audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         buildUi();
+        current = this;
+        groupStart = getIntent().getBooleanExtra("sync", false);
+        SyncPlay.cmd = this::syncCommand;
         localFile = getIntent().getStringExtra("file");
         load(getIntent().getStringExtra("id"), getIntent().getLongExtra("start", 0));
     }
@@ -176,7 +184,7 @@ public class PlayerActivity extends Activity {
         touch.setOnTouchListener((v, e) -> {
             boolean r = gd.onTouchEvent(e);
             if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
-                if (mode == 1 && player != null) { player.seekTo(scrubTarget); }
+                if (mode == 1 && player != null) { userSeek(scrubTarget); }
                 scrubbing = false;
                 mode = 0;
                 h.postDelayed(() -> feedback.setVisibility(View.GONE), 500);
@@ -279,7 +287,7 @@ public class PlayerActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar s) { scrubbing = true; }
             @Override public void onStopTrackingTouch(SeekBar s) {
                 scrubbing = false;
-                if (player != null) player.seekTo(s.getProgress() * 1000L);
+                if (player != null) userSeek(s.getProgress() * 1000L);
                 showControls();
             }
         });
@@ -295,7 +303,7 @@ public class PlayerActivity extends Activity {
         skipIntro = Ui.button(this, "next", "Vorspann überspringen", false);
         skipIntro.setBackground(Ui.outlined(this, 0xE60A0D12, 0x55FFFFFF, 26));
         skipIntro.setVisibility(View.GONE);
-        skipIntro.setOnClickListener(v -> { if (player != null && introEndMs > 0) player.seekTo(introEndMs); });
+        skipIntro.setOnClickListener(v -> { if (player != null && introEndMs > 0) userSeek(introEndMs); });
         FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         sl.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
         root.addView(skipIntro, sl);
@@ -305,7 +313,7 @@ public class PlayerActivity extends Activity {
         outroBtn.setVisibility(View.GONE);
         outroBtn.setOnClickListener(v -> {
             if (nextItem != null) playNext();
-            else if (player != null && outroEndMs > 0) player.seekTo(Math.min(outroEndMs, Math.max(duration() - 500, 0)));
+            else if (player != null && outroEndMs > 0) userSeek(Math.min(outroEndMs, Math.max(duration() - 500, 0)));
         });
         FrameLayout.LayoutParams ol = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         ol.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
@@ -390,7 +398,8 @@ public class PlayerActivity extends Activity {
         if (!transcoding && localFile == null) mb.setSubtitleConfigurations(externalSubs(item));
         player.setMediaItem(mb.build(), startMs);
         player.prepare();
-        player.setPlayWhenReady(true);
+        syncStartMs = startMs;
+        player.setPlayWhenReady(!groupStart);
         started = false;
     }
 
@@ -490,6 +499,13 @@ public class PlayerActivity extends Activity {
                 if (!started && player.getPlaybackState() == Player.STATE_READY) {
                     started = true;
                     report(0);
+                    if (groupStart) {
+                        groupStart = false;
+                        long sm = syncStartMs;
+                        player.pause();
+                        player.seekTo(sm);
+                        h.postDelayed(() -> SyncPlay.get(PlayerActivity.this).ready(sm, false), 600);
+                    }
                 }
                 if (player.isPlaying() && System.currentTimeMillis() - lastReport > 10000) report(1);
             }
@@ -524,12 +540,47 @@ public class PlayerActivity extends Activity {
 
     private void seekBy(long ms) {
         if (player == null) return;
-        player.seekTo(clamp(player.getCurrentPosition() + ms, 0, Math.max(duration() - 1000, 0)));
+        userSeek(clamp(player.getCurrentPosition() + ms, 0, Math.max(duration() - 1000, 0)));
+    }
+
+    // ---- Gemeinsam schauen: Eingaben gehen an die Gruppe, ausgefuehrt wird, was der Server befiehlt
+
+    private boolean grouped() { return SyncPlay.get(this).inGroup(); }
+
+    private void userSeek(long ms) {
+        if (player == null) return;
+        if (grouped()) SyncPlay.get(this).seek(ms); else player.seekTo(ms);
+    }
+
+    /** Befehl der Gruppe (Pause, Unpause, Seek, Stop). */
+    private void syncCommand(String c, long posMs, long delayMs) {
+        if (player == null || isFinishing()) return;
+        switch (c) {
+            case "Pause":
+                player.pause();
+                player.seekTo(posMs);
+                break;
+            case "Unpause":
+                player.seekTo(posMs);
+                h.postDelayed(() -> { if (player != null) player.play(); }, Math.max(1, delayMs));
+                break;
+            case "Seek":
+                player.pause();
+                player.seekTo(posMs);
+                h.postDelayed(() -> { if (grouped()) SyncPlay.get(this).ready(posMs, false); }, 500);
+                break;
+            case "Stop":
+                finish();
+                break;
+            default:
+        }
     }
 
     private void togglePlay() {
         if (player == null) return;
-        if (player.isPlaying()) player.pause(); else player.play();
+        if (grouped()) {
+            if (player.isPlaying()) SyncPlay.get(this).pause(); else SyncPlay.get(this).unpause();
+        } else if (player.isPlaying()) player.pause(); else player.play();
         showControls();
     }
 
@@ -628,7 +679,7 @@ public class PlayerActivity extends Activity {
             n[i] = fmt(c.start / TICKS_PER_MS) + "   " + (c.name.isEmpty() ? "Kapitel " + (i + 1) : c.name);
         }
         new AlertDialog.Builder(this).setTitle("Kapitel")
-                .setItems(n, (d, i) -> player.seekTo(item.chapters.get(i).start / TICKS_PER_MS)).show();
+                .setItems(n, (d, i) -> userSeek(item.chapters.get(i).start / TICKS_PER_MS)).show();
     }
 
     private String trackName(Format f, int i) {
@@ -750,6 +801,64 @@ public class PlayerActivity extends Activity {
         }
     }
 
+    // ------------------------------------------------------------ Controller
+
+    private long stickNext;
+
+    /** A/Start = Pause, links/rechts oder L1/R1 = 10 s spulen, oben/unten = Lautstaerke, X = Ton/Untertitel, Y = Kapitel. */
+    @Override
+    public boolean onKeyDown(int code, KeyEvent e) {
+        switch (code) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+            case KeyEvent.KEYCODE_BUTTON_START:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                if (e.getRepeatCount() == 0) togglePlay();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_BUTTON_L1:
+                seekBy(-10000);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_BUTTON_R1:
+                seekBy(10000);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_X:
+                if (e.getRepeatCount() == 0) trackDialog();
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_Y:
+                if (e.getRepeatCount() == 0 && item != null && !item.chapters.isEmpty()) chapterDialog();
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                onBackPressed();
+                return true;
+            default:
+                return super.onKeyDown(code, e);
+        }
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent e) {
+        if ((e.getSource() & InputDevice.SOURCE_JOYSTICK) != 0 && e.getActionMasked() == MotionEvent.ACTION_MOVE) {
+            long now = System.currentTimeMillis();
+            float x = e.getAxisValue(MotionEvent.AXIS_X), y = e.getAxisValue(MotionEvent.AXIS_Y);
+            if (now >= stickNext) {
+                if (x > 0.6f) { seekBy(10000); stickNext = now + 400; }
+                else if (x < -0.6f) { seekBy(-10000); stickNext = now + 400; }
+                else if (y < -0.6f) { audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI); stickNext = now + 250; }
+                else if (y > 0.6f) { audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI); stickNext = now + 250; }
+            }
+            return true;
+        }
+        return super.onGenericMotionEvent(e);
+    }
+
     @Override
     public void onBackPressed() {
         if (lockedControls) { lockedControls = false; showControls(); return; }
@@ -759,6 +868,8 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (current == this) current = null;
+        if (SyncPlay.cmd != null) SyncPlay.cmd = null;
         h.removeCallbacksAndMessages(null);
         if (player != null) {
             report(2);

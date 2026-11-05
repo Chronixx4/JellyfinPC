@@ -37,7 +37,7 @@ public class ScreensTest {
 
     private static final String MOVIE = "{\"Id\":\"m1\",\"Name\":\"Testfilm\",\"Type\":\"Movie\",\"ProductionYear\":2020,"
             + "\"RunTimeTicks\":72000000000,\"CommunityRating\":7.5,\"OfficialRating\":\"FSK 12\","
-            + "\"Overview\":\"Eine Beschreibung.\",\"Genres\":[\"Action\"],\"ImageTags\":{\"Primary\":\"x\"},"
+            + "\"Overview\":\"Eine Beschreibung.\",\"BackdropImageTags\":[\"b\"],\"Genres\":[\"Action\"],\"ImageTags\":{\"Primary\":\"x\"},"
             + "\"UserData\":{\"PlaybackPositionTicks\":6000000000,\"Played\":false,\"IsFavorite\":false},"
             + "\"People\":[{\"Id\":\"p1\",\"Name\":\"Max Muster\",\"Role\":\"Held\",\"Type\":\"Actor\"}],"
             + "\"Chapters\":[{\"Name\":\"Intro\",\"StartPositionTicks\":0},{\"Name\":\"Mitte\",\"StartPositionTicks\":6000000000}],"
@@ -85,6 +85,7 @@ public class ScreensTest {
         if (p.startsWith("/Items/") && p.endsWith("/Similar")) return "{\"Items\":[" + MOVIE + "]}";
         if (p.startsWith("/Genres")) return "{\"Items\":[{\"Name\":\"Action\"}]}";
         if (p.startsWith("/MediaSegments")) return "{\"Items\":[{\"Type\":\"Intro\",\"StartTicks\":0,\"EndTicks\":300000000}]}";
+        if (p.equals("/SyncPlay/List")) return "[{\"GroupId\":\"g1\",\"GroupName\":\"Filmabend\",\"Participants\":[\"Anna\"]}]";
         if (p.contains("/Images/")) return null;
         return "{\"Items\":[]}";
     }
@@ -111,6 +112,12 @@ public class ScreensTest {
     private static void texts(View v, StringBuilder out) {
         if (v instanceof TextView) out.append(((TextView) v).getText()).append('\n');
         if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) texts(((ViewGroup) v).getChildAt(i), out);
+    }
+
+    private static boolean hasView(View v, Class<?> c) {
+        if (c.isInstance(v)) return true;
+        if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) if (hasView(((ViewGroup) v).getChildAt(i), c)) return true;
+        return false;
     }
 
     private static String screenText(Activity a) {
@@ -225,6 +232,75 @@ public class ScreensTest {
         PlayerActivity p = Robolectric.buildActivity(PlayerActivity.class, i).setup().get();
         waitFor(() -> screenText(p).contains("Testfilm"), "Player");
         shot(p, "player");
+    }
+
+    @Test
+    public void themesSyncScreensaver() throws Exception {
+        android.animation.ValueAnimator.class.getMethod("setDurationScale", float.class).invoke(null, 0f);   // Animationen sofort fertig, sonst laeuft der Testtakt endlos
+        resetJf();
+        Context ctx = RuntimeEnvironment.getApplication();
+        ctx.getSharedPreferences("app", Context.MODE_PRIVATE).edit().putBoolean("heroVideo", false).apply();
+        MainActivity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+        waitFor(() -> screenText(a).contains("Neu in Filme"), "Start");
+
+        // Farbdesign: Einstellungen zeigen alle Designs, Auswahl aendert die Akzentfarbe und merkt sie sich
+        a.push(new AccountScreen(a));
+        waitFor(() -> screenText(a).contains("Farbdesign") && screenText(a).contains("Sonnenuntergang")
+                && screenText(a).contains("Gemeinsam schauen") && screenText(a).contains("Bildschirmschoner"), "Konto mit Farbdesign");
+        int before = Ui.ACCENT;
+        Ui.setTheme("Sonnenuntergang");
+        assertTrue(Ui.ACCENT != before);
+        Ui.setTheme("Violett");
+        assertTrue(Ui.ACCENT == before);
+
+        // Gemeinsam schauen: Gruppenliste vom Server
+        SyncScreen ss = new SyncScreen(a);
+        a.push(ss);
+        waitFor(() -> screenText(a).contains("Neue Gruppe") && screenText(a).contains("Filmabend"), "Gruppenliste");
+        shot(a, "sync");
+
+        // Nachrichten des Servers: Gruppe beigetreten -> Anzeige; "Abspielen" geht dann an die Gruppe statt direkt zu starten
+        SyncPlay sp = SyncPlay.get(a);
+        sp.handle(new org.json.JSONObject("{\"MessageType\":\"SyncPlayGroupUpdate\",\"Data\":{\"Type\":\"GroupJoined\","
+                + "\"Data\":{\"GroupId\":\"g1\",\"GroupName\":\"Filmabend\",\"Participants\":[\"Anna\"]}}}"));
+        ss.rebuild();   // in der App macht das der 0,6-s-Takt der Seite
+        waitFor(() -> screenText(a).contains("Gruppe verlassen") && screenText(a).contains("Anna"), "Gruppenansicht");
+        shot(a, "sync-group");
+        a.play(de.marvin.jellyfin.core.JfItem.from(new org.json.JSONObject(MOVIE)), 0);
+        assertTrue(shadowOf(a).getNextStartedActivity() == null);   // kein lokaler Start in der Gruppe
+        // Server startet den Titel: Player oeffnet sich im Gruppenmodus
+        sp.handle(new org.json.JSONObject("{\"MessageType\":\"SyncPlayGroupUpdate\",\"Data\":{\"Type\":\"PlayQueue\","
+                + "\"Data\":{\"Reason\":\"NewPlaylist\",\"PlayingItemIndex\":0,\"StartPositionTicks\":0,"
+                + "\"Playlist\":[{\"ItemId\":\"m1\",\"PlaylistItemId\":\"pl1\"}]}}}"));
+        shadowOf(Looper.getMainLooper()).idle();
+        Intent started = shadowOf(a).getNextStartedActivity();
+        assertTrue(started != null && started.getBooleanExtra("sync", false) && "m1".equals(started.getStringExtra("id")));
+        sp.handle(new org.json.JSONObject("{\"MessageType\":\"SyncPlayGroupUpdate\",\"Data\":{\"Type\":\"GroupLeft\"}}"));
+        assertTrue(!sp.inGroup());
+        a.pop();
+        a.pop();
+
+        // Bildschirmschoner: nach Ruhezeit auf der Startseite
+        a.startSaver();   // die Zeitschaltung selbst (touchIdle) braucht echte Zeit, hier direkt ausloesen
+        waitFor(() -> hasView(a.getWindow().getDecorView(), android.widget.TextClock.class), "Bildschirmschoner (Uhr)");
+        shot(a, "saver");
+        // Tippen beendet ihn
+        a.dispatchTouchEvent(android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 10, 10, 0));
+        waitFor(() -> !hasView(a.getWindow().getDecorView(), android.widget.TextClock.class), "Startseite nach Bildschirmschoner");
+        // Controller: A-Taste wird zur OK-Taste, Steuerkreuz bewegt den Fokus (kein Absturz)
+        a.dispatchKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BUTTON_A));
+        a.dispatchKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_DOWN));
+    }
+
+    @Test
+    public void playerControllerKeys() throws Exception {
+        resetJf();
+        Intent i = new Intent(RuntimeEnvironment.getApplication(), PlayerActivity.class).putExtra("id", "m1").putExtra("start", 0L);
+        PlayerActivity p = Robolectric.buildActivity(PlayerActivity.class, i).setup().get();
+        waitFor(() -> screenText(p).contains("Testfilm"), "Player-Titel");
+        assertTrue(p.onKeyDown(android.view.KeyEvent.KEYCODE_BUTTON_A, new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BUTTON_A)));
+        assertTrue(p.onKeyDown(android.view.KeyEvent.KEYCODE_DPAD_RIGHT, new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_RIGHT)));
+        p.finish();
     }
 
     @Test

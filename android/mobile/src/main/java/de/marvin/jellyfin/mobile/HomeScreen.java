@@ -24,6 +24,11 @@ final class HomeScreen extends Screen {
     private LinearLayout content, nav;
     private SwipeRefreshLayout swipe;
     private int generation;
+    private HeroPreview preview;
+    private final android.os.Handler heroHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private java.util.List<JfItem> heroItems = new ArrayList<>();
+    private int heroIdx;
+    private FrameLayout heroView;
 
     HomeScreen(MainActivity a) { super(a); }
 
@@ -118,6 +123,9 @@ final class HomeScreen extends Screen {
         if (url == null) url = a.jf.landscape(it);
         Ui.load(bd, url);
         f.addView(bd, new FrameLayout.LayoutParams(-1, -1));
+        if (preview != null) { preview.stop(); preview = null; }
+        if (a.prefs.getBoolean("heroVideo", true) && it.isPlayable() && it.runTicks > 0)
+            preview = new HeroPreview(a, f, 1, a.jf, it, 2000);
         View fade = new View(a);
         fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x330A0D12, 0x990A0D12, Ui.BG}));
@@ -212,11 +220,22 @@ final class HomeScreen extends Screen {
             nav.addView(fav, navLp());
 
             // Banner: erster Titel aus "Weiter schauen", sonst "Als Naechstes", sonst Neuzugang
-            JfItem heroItem = !resume.isEmpty() ? resume.get(0) : !next.isEmpty() ? next.get(0) : null;
-            if (heroItem == null) for (ArrayList<JfItem> l : latest) if (!l.isEmpty()) { heroItem = l.get(0); break; }
-            if (heroItem != null) {
+            heroHandler.removeCallbacksAndMessages(null);
+            heroItems = new ArrayList<>();
+            for (JfItem i : resume) if (heroItems.size() < 5 && a.jf.backdrop(i) != null) heroItems.add(i);
+            for (JfItem i : next) if (heroItems.size() < 5 && a.jf.backdrop(i) != null && !has(i)) heroItems.add(i);
+            for (ArrayList<JfItem> l : latest) for (JfItem i : l) if (heroItems.size() < 5 && a.jf.backdrop(i) != null && !has(i)) heroItems.add(i);
+            if (heroItems.isEmpty()) {
+                JfItem any = !resume.isEmpty() ? resume.get(0) : !next.isEmpty() ? next.get(0) : null;
+                if (any != null) heroItems.add(any);
+            }
+            heroIdx = 0;
+            heroView = null;
+            if (!heroItems.isEmpty()) {
                 int h = Math.min(Ui.dp(a, 360), (int) (a.getResources().getDisplayMetrics().widthPixels * 1.0f));
-                content.addView(hero(heroItem), new LinearLayout.LayoutParams(-1, h));
+                heroView = (FrameLayout) hero(heroItems.get(0));
+                content.addView(heroView, new LinearLayout.LayoutParams(-1, h));
+                if (heroItems.size() > 1) scheduleHero();
             }
 
             addRow("Weiter schauen", resume, true, null);
@@ -239,6 +258,30 @@ final class HomeScreen extends Screen {
                 content.addView(t);
             }
         });
+    }
+
+    private boolean has(JfItem i) {
+        for (JfItem h : heroItems) if (h.id.equals(i.id)) return true;
+        return false;
+    }
+
+    /** Banner wechselt wie in der PC-App alle paar Sekunden zum naechsten Titel. */
+    private void scheduleHero() {
+        heroHandler.postDelayed(() -> {
+            if (heroView == null || heroView.getParent() != content || view.getVisibility() != View.VISIBLE) return;
+            heroIdx = (heroIdx + 1) % heroItems.size();
+            int pos = content.indexOfChild(heroView);
+            int h = heroView.getLayoutParams().height;
+            content.removeViewAt(pos);
+            heroView = (FrameLayout) hero(heroItems.get(heroIdx));
+            content.addView(heroView, pos, new LinearLayout.LayoutParams(-1, h));
+            scheduleHero();
+        }, 16000);
+    }
+
+    @Override void onHidden() {
+        heroHandler.removeCallbacksAndMessages(null);
+        if (preview != null) { preview.stop(); preview = null; }
     }
 
     private LinearLayout.LayoutParams navLp() {
