@@ -1,9 +1,9 @@
 {
   "windows": {
-    "build": 29,
-    "version": "2.9",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.9/JellyfinPC.exe",
-    "md5": "68d53e385f4412be35c52c5af40eba14",
+    "build": 30,
+    "version": "3.0",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinPC.exe",
+    "md5": "5bdfb8825e22ccd18ae2f5049e47771d",
     "notes": "Alle Emojis durch dieselben Icons wie in der Handy-App ersetzt."
   },
   "tv": {
@@ -14,10 +14,10 @@
     "notes": ""
   },
   "mobile": {
-    "build": 29,
-    "version": "2.9",
-    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.9/JellyfinMobile.apk",
-    "md5": "d1e6c7569d8a3597a5c363c3325892eb",
+    "build": 30,
+    "version": "3.0",
+    "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.0/JellyfinMobile.apk",
+    "md5": "975399a3fe98a3bb43c81199ca5726b4",
     "notes": "Gleiche Funktionen wie die PC-App: Statistik, Listen/Sammlungen, Downloads, Trailer, Abspann überspringen, Schlaf-Timer, Profil-PIN. Gemeinsame Icons."
   }
 }
