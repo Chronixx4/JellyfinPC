@@ -176,6 +176,15 @@ public class ScreensTest {
         a.push(new SearchScreen(a));
         waitFor(() -> screenText(a).contains("Suche"), "Suche");
         a.pop();
+        a.push(new StatsScreen(a));
+        waitFor(() -> screenText(a).contains("Deine Statistik"), "Statistik");
+        a.pop();
+        a.push(new Lists.ListsScreen(a));
+        waitFor(() -> screenText(a).contains("Wiedergabelisten") && screenText(a).contains("Sammlungen"), "Listen");
+        a.pop();
+        a.push(new DownloadsScreen(a));
+        waitFor(() -> screenText(a).contains("Noch nichts geladen"), "Downloads");
+        a.pop();
         a.push(new AccountScreen(a));
         waitFor(() -> screenText(a).contains("Abmelden"), "Konto");
     }

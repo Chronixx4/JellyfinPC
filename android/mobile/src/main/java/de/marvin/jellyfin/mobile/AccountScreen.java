@@ -60,12 +60,33 @@ final class AccountScreen extends Screen {
                 (b, on) -> a.prefs.edit().putBoolean("updateAuto", on).apply()));
         col.addView(Ui.space(a, 16));
 
+        Ui.Btn stats = Ui.button(a, "stats", "Statistik", false);
+        stats.setOnClickListener(v -> a.push(new StatsScreen(a)));
+        col.addView(stats, gap());
+        Ui.Btn lists = Ui.button(a, "viewList", "Wiedergabelisten & Sammlungen", false);
+        lists.setOnClickListener(v -> a.push(new Lists.ListsScreen(a)));
+        col.addView(lists, gap());
+        Ui.Btn dl = Ui.button(a, "download", "Downloads", false);
+        dl.setOnClickListener(v -> a.push(new DownloadsScreen(a)));
+        col.addView(dl, gap());
         Ui.Btn fav = Ui.button(a, "heart", "Merkliste", false);
         fav.setOnClickListener(v -> a.push(new ListScreen(a, "Merkliste", ListScreen.FAVORITES)));
         col.addView(fav, gap());
         Ui.Btn upd = Ui.button(a, "update", "Nach Updates suchen (Version " + Updater.currentVersion(a) + ")", false);
         upd.setOnClickListener(v -> Updater.check(a, true));
         col.addView(upd, gap());
+        Ui.Btn pin = Ui.button(a, "lock", "PIN für dieses Profil …", false);
+        pin.setOnClickListener(v -> {
+            de.marvin.jellyfin.core.Jf.Profile p = a.jf.currentProfile();
+            if (p == null) { a.toast("Kein Profil"); return; }
+            android.widget.EditText e = new android.widget.EditText(a);
+            e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+            e.setHint("PIN (leer = entfernen)");
+            new android.app.AlertDialog.Builder(a).setTitle("PIN für " + p.name).setView(e)
+                    .setPositiveButton("Speichern", (d, w) -> { a.jf.setPin(p, e.getText().toString().trim()); a.toast("PIN gespeichert"); })
+                    .setNegativeButton("Abbrechen", null).show();
+        });
+        col.addView(pin, gap());
         Ui.Btn sw = Ui.button(a, "person", "Profil wechseln", false);
         sw.setOnClickListener(v -> { a.reset(new LoginScreen(a)); });
         col.addView(sw, gap());

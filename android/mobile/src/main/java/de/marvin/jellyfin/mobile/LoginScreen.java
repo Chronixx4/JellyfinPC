@@ -91,8 +91,18 @@ final class LoginScreen extends Screen {
             t.setPadding(0, Ui.dp(a, 20), 0, Ui.dp(a, 6));
             col.addView(t);
             for (Jf.Profile p : profiles) {
-                Ui.Btn b = Ui.button(a, "person", p.name, false);
-                b.setOnClickListener(v -> { a.jf.useProfile(p); a.reset(new HomeScreen(a)); });
+                Ui.Btn b = Ui.button(a, p.pinHash.isEmpty() ? "person" : "lock", p.name, false);
+                b.setOnClickListener(v -> {
+                    if (p.pinHash.isEmpty()) { a.jf.useProfile(p); a.reset(new HomeScreen(a)); return; }
+                    EditText e = new EditText(a);
+                    e.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+                    e.setHint("PIN");
+                    new android.app.AlertDialog.Builder(a).setTitle("PIN für " + p.name).setView(e)
+                            .setPositiveButton("OK", (d, w) -> {
+                                if (a.jf.checkPin(p, e.getText().toString().trim())) { a.jf.useProfile(p); a.reset(new HomeScreen(a)); }
+                                else a.toast("Falsche PIN");
+                            }).setNegativeButton("Abbrechen", null).show();
+                });
                 LinearLayout.LayoutParams l = new LinearLayout.LayoutParams(-1, -2);
                 l.topMargin = Ui.dp(a, 8);
                 col.addView(b, l);

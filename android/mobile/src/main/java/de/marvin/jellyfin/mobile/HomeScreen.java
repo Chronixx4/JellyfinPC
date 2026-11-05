@@ -199,6 +199,9 @@ final class HomeScreen extends Screen {
                 c.setOnClickListener(x -> a.openItem(v));
                 nav.addView(c, navLp());
             }
+            TextView lists = Ui.chip(a, "Listen", false);
+            lists.setOnClickListener(x -> a.push(new Lists.ListsScreen(a)));
+            nav.addView(lists, navLp());
             TextView fav = Ui.chip(a, "Merkliste", false);
             fav.setOnClickListener(x -> a.push(new ListScreen(a, "Merkliste", ListScreen.FAVORITES)));
             nav.addView(fav, navLp());

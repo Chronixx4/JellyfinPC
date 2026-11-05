@@ -36,7 +36,7 @@ Gradle-Projekt mit zwei Modulen: `core` (Jellyfin-REST-Client `Jf`/`JfItem`, vom
 und `mobile` (Touch-Oberfläche, Paket `de.marvin.jellyfin.mobile`, Player auf Media3/ExoPlayer).
 Eine spätere Android-TV/Fire-TV-App kommt als drittes Modul `tv` neben `mobile` und nutzt `core` mit.
 
-Funktionen: Anmeldung (Passwort/Quick Connect/Profile), Start (Weiter schauen, Als Nächstes, Neu in …), Bibliotheken mit Sortierung/Filter/Genre,
+Funktionen (seit 3.0 wie die PC-App, außer Gemeinsam schauen/Controller/Farbdesign): Anmeldung (Passwort/Quick Connect/Profile), Start (Weiter schauen, Als Nächstes, Neu in …), Bibliotheken mit Sortierung/Filter/Genre,
 Suche, Merkliste, Details (Besetzung, Staffeln/Folgen, Ähnliche), gesehen/Merkliste setzen (auch per langem Drücken),
 Player mit Doppeltippen ±10 s, Wischen zum Spulen/Helligkeit/Lautstärke, Ton-/Untertitel, Tempo, Kapitel, Vorspann überspringen,
 nächste Folge, Bild-in-Bild und Wiedergabestatus an den Server. Wenn der Handy-Player eine Datei nicht direkt abspielen kann (z. B. DTS), wandelt der Server um.

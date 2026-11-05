@@ -143,6 +143,19 @@ final class Cards {
             labels.add(it.favorite ? "Von der Merkliste entfernen" : "Auf die Merkliste");
             acts.add(() -> a.bg(() -> { a.jf.setFavorite(it.id, !it.favorite); return true; }, ok -> { if (ok != null) changed.run(); }));
         }
+        if (it.isPlayable()) {
+            labels.add("Herunterladen");
+            acts.add(() -> Downloads.start(a, it));
+        } else if ("Series".equals(it.type)) {
+            labels.add("Ungesehene Folgen laden");
+            acts.add(() -> Downloads.unseenEpisodes(a, it));
+        }
+        if (it.isPlayable() || "Series".equals(it.type)) {
+            labels.add("Zur Wiedergabeliste …");
+            acts.add(() -> Lists.addTo(a, it, true));
+            labels.add("Zur Sammlung …");
+            acts.add(() -> Lists.addTo(a, it, false));
+        }
         if (it.resumeTicks > 0) {
             labels.add("Aus „Weiter schauen“ entfernen");
             acts.add(() -> a.bg(() -> { a.jf.clearProgress(it.id); return true; }, ok -> { if (ok != null) changed.run(); }));

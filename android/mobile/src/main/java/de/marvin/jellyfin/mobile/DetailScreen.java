@@ -187,6 +187,39 @@ final class DetailScreen extends Screen {
         }
         body.addView(btns);
 
+        // Weitere Aktionen wie in der PC-App: Trailer, Herunterladen, zu Liste/Sammlung
+        HorizontalScrollView more = new HorizontalScrollView(a);
+        more.setHorizontalScrollBarEnabled(false);
+        LinearLayout moreRow = new LinearLayout(a);
+        moreRow.setPadding(0, Ui.dp(a, 12), 0, 0);
+        if (item.trailerUrl != null && !item.trailerUrl.isEmpty()) {
+            Ui.Btn tr = Ui.button(a, "movie", "Trailer", false);
+            tr.setOnClickListener(v -> {
+                try { a.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(item.trailerUrl))); }
+                catch (Exception e) { a.toast("Kein Programm für den Trailer gefunden"); }
+            });
+            addMeta(moreRow, tr);
+        }
+        if (item.isPlayable()) {
+            Ui.Btn dl = Ui.button(a, Downloads.has(a, item.id) ? "check" : "download", Downloads.has(a, item.id) ? "Geladen" : "Herunterladen", false);
+            dl.setOnClickListener(v -> { Downloads.start(a, item); render(); });
+            addMeta(moreRow, dl);
+        } else if ("Series".equals(item.type)) {
+            Ui.Btn dl = Ui.button(a, "download", "Ungesehene laden", false);
+            dl.setOnClickListener(v -> Downloads.unseenEpisodes(a, item));
+            addMeta(moreRow, dl);
+        }
+        if (item.isPlayable() || "Series".equals(item.type)) {
+            Ui.Btn pl = Ui.button(a, "viewList", "Wiedergabeliste", false);
+            pl.setOnClickListener(v -> Lists.addTo(a, item, true));
+            addMeta(moreRow, pl);
+            Ui.Btn bs = Ui.button(a, "add", "Sammlung", false);
+            bs.setOnClickListener(v -> Lists.addTo(a, item, false));
+            addMeta(moreRow, bs);
+        }
+        more.addView(moreRow);
+        body.addView(more);
+
         if (!item.tagline.isEmpty()) {
             TextView tl = Ui.text(a, item.tagline, 15, Ui.ACCENT2, false);
             tl.setTypeface(null, android.graphics.Typeface.ITALIC);

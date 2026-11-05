@@ -148,6 +148,7 @@ public final class App extends Application {
     @Override
     public void start(Stage st) {
         Player.warmUp();
+        Fx.startDeEmoji();
         stage = st;
         for (int n : new int[]{32, 64, 128, 256}) {
             try { st.getIcons().add(new Image(getClass().getResourceAsStream("/icon-" + n + ".png"))); } catch (Exception ignored) { }
