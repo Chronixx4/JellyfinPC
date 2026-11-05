@@ -39,13 +39,11 @@ abstract class GridScreen extends Screen {
 
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        TextView back = Ui.text(a, "←", 24, Ui.TEXT, false);
-        back.setGravity(Gravity.CENTER);
-        back.setMinWidth(Ui.dp(a, 52));
-        back.setMinHeight(Ui.dp(a, 52));
+        bar.setPadding(Ui.dp(a, 8), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 4));
+        android.widget.ImageView back = Ui.iconButton(a, "back", 44, false);
         back.setOnClickListener(v -> a.pop());
         bar.addView(back);
-        TextView t = Ui.text(a, title, 20, Ui.TEXT, true);
+        TextView t = Ui.text(a, title, 22, Ui.TEXT, true);
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));

@@ -29,7 +29,8 @@ import java.util.function.BooleanSupplier;
 
 /** Startet die echten Seiten gegen einen kleinen Mock-Jellyfin-Server und prueft, dass sie sich aufbauen. */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 34)
+@Config(sdk = 34, qualifiers = "w393dp-h851dp-xxhdpi")
+@org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 public class ScreensTest {
     private ServerSocket srv;
     private volatile boolean running = true;
@@ -177,6 +178,44 @@ public class ScreensTest {
         a.pop();
         a.push(new AccountScreen(a));
         waitFor(() -> screenText(a).contains("Abmelden"), "Konto");
+    }
+
+    private static void shot(Activity a, String name) throws Exception {
+        View v = a.getWindow().getDecorView();
+        android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
+        v.measure(View.MeasureSpec.makeMeasureSpec(dm.widthPixels, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(dm.heightPixels, View.MeasureSpec.EXACTLY));
+        v.layout(0, 0, dm.widthPixels, dm.heightPixels);
+        android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(dm.widthPixels, dm.heightPixels, android.graphics.Bitmap.Config.ARGB_8888);
+        v.draw(new android.graphics.Canvas(bm));
+        String dir = System.getenv("SHOT_DIR");
+        if (dir == null) return;
+        try (java.io.FileOutputStream o = new java.io.FileOutputStream(dir + "/" + name + ".png")) {
+            bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
+        }
+    }
+
+    @Test
+    public void screenshots() throws Exception {
+        resetJf();
+        MainActivity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+        waitFor(() -> screenText(a).contains("Neu in Filme"), "Start");
+        shot(a, "home");
+        a.openItem(de.marvin.jellyfin.core.JfItem.from(new org.json.JSONObject(MOVIE)));
+        waitFor(() -> screenText(a).contains("Max Muster"), "Details");
+        shot(a, "detail");
+        a.pop();
+        a.openItem(de.marvin.jellyfin.core.JfItem.from(new org.json.JSONObject(
+                "{\"Id\":\"lib1\",\"Name\":\"Filme\",\"Type\":\"CollectionFolder\",\"CollectionType\":\"movies\"}")));
+        waitFor(() -> screenText(a).contains("Ungesehen"), "Bibliothek");
+        shot(a, "library");
+        a.pop();
+        a.push(new AccountScreen(a));
+        shot(a, "account");
+        Intent i = new Intent(RuntimeEnvironment.getApplication(), PlayerActivity.class).putExtra("id", "m1").putExtra("start", 0L);
+        PlayerActivity p = Robolectric.buildActivity(PlayerActivity.class, i).setup().get();
+        waitFor(() -> screenText(p).contains("Testfilm"), "Player");
+        shot(p, "player");
     }
 
     @Test

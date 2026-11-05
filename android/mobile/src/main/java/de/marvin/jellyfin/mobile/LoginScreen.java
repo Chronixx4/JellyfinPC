@@ -34,7 +34,7 @@ final class LoginScreen extends Screen {
         e.setSingleLine(true);
         e.setMinHeight(Ui.dp(a, 52));
         e.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), 0);
-        e.setBackground(Ui.round(Ui.CARD, 12, a));
+        e.setBackground(Ui.outlined(a, 0x12FFFFFF, Ui.LINE, 12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = Ui.dp(a, 12);
         e.setLayoutParams(lp);
@@ -52,7 +52,7 @@ final class LoginScreen extends Screen {
         col.setPadding(pad, pad, pad, pad);
         sv.addView(col, new ScrollView.LayoutParams(-1, -1));
 
-        TextView title = Ui.text(a, "Jellyfin", 34, Ui.ACCENT, true);
+        TextView title = Ui.brand(a, "Jellyfin", 40);
         title.setGravity(Gravity.CENTER);
         col.addView(title, new LinearLayout.LayoutParams(-1, -2));
         TextView sub = Ui.text(a, "Mit deinem Server verbinden", 15, Ui.MUTED, false);
@@ -68,13 +68,13 @@ final class LoginScreen extends Screen {
         col.addView(user);
         col.addView(pass);
 
-        TextView go = Ui.button(a, "Anmelden", true);
+        Ui.Btn go = Ui.button(a, "Anmelden", true);
         go.setOnClickListener(v -> login());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = Ui.dp(a, 20);
         col.addView(go, lp);
 
-        TextView qc = Ui.button(a, "Quick Connect", false);
+        Ui.Btn qc = Ui.button(a, "Quick Connect", false);
         qc.setOnClickListener(v -> quickConnect());
         LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(-1, -2);
         lp2.topMargin = Ui.dp(a, 10);
@@ -91,7 +91,7 @@ final class LoginScreen extends Screen {
             t.setPadding(0, Ui.dp(a, 20), 0, Ui.dp(a, 6));
             col.addView(t);
             for (Jf.Profile p : profiles) {
-                TextView b = Ui.button(a, p.name, false);
+                Ui.Btn b = Ui.button(a, "person", p.name, false);
                 b.setOnClickListener(v -> { a.jf.useProfile(p); a.reset(new HomeScreen(a)); });
                 LinearLayout.LayoutParams l = new LinearLayout.LayoutParams(-1, -2);
                 l.topMargin = Ui.dp(a, 8);

@@ -4,7 +4,7 @@
     "version": "2.8",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.8/JellyfinPC.exe",
     "md5": "c58f914d002f2b00a57cad4196856b16",
-    "notes": "Gleichzeitig erscheint die neue Handy-App (APK). Windows-App unverändert."
+    "notes": "Windows-App unverändert; neue Handy-App-Version 2.9 erscheint gleichzeitig."
   },
   "tv": {
     "build": 0,
@@ -18,6 +18,6 @@
     "version": "2.8",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.8/JellyfinMobile.apk",
     "md5": "e73f075e41f0fe2086affbe8f8ee14eb",
-    "notes": "Erste Handy-/Tablet-App: Touch-Bedienung, Player mit Wischgesten, Ton-/Untertitelwahl, Kapitel, Vorspann überspringen, automatische Updates."
+    "notes": "Neues Design wie die PC-App (Banner, Reiter, Farbverlauf) und echte Icons statt Emojis."
   }
 }
