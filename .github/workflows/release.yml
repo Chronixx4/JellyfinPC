@@ -1,6 +1,6 @@
 name: Release
 
-# Baut die Windows-EXE und die Handy-APK und veröffentlicht beide in einem GitHub-Release,
+# Baut die Windows-EXE, die Handy-APK und die TV-APK (Android TV / Fire TV) und veröffentlicht alle in einem GitHub-Release,
 # sobald sich die Version in src/main/resources/app.properties ändert (oder manuell über "Run workflow").
 # Version und Build-Nummer gelten für beide Programme (versionCode der APK = build).
 on:
@@ -40,21 +40,27 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon -q :mobile:assembleRelease
           cp mobile/build/outputs/apk/release/mobile-release.apk ../target/JellyfinMobile.apk
+      - name: Bauen (TV-APK)
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon -q :tv:assembleRelease
+          cp tv/build/outputs/apk/release/tv-release.apk ../target/JellyfinTV.apk
       - name: Release veröffentlichen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v${{ steps.v.outputs.version }}"
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$TAG" target/JellyfinPC.exe target/JellyfinMobile.apk --target "$GITHUB_SHA" \
+          gh release create "$TAG" target/JellyfinPC.exe target/JellyfinMobile.apk target/JellyfinTV.apk --target "$GITHUB_SHA" \
             --title "JellyfinPC ${{ steps.v.outputs.version }}" --notes "Automatischer Build ${{ steps.v.outputs.build }}."
       - name: version.json aktualisieren
         run: |
           MD5=$(md5sum target/JellyfinPC.exe | cut -d' ' -f1)
           APK_MD5=$(md5sum target/JellyfinMobile.apk | cut -d' ' -f1)
-          python3 - "$MD5" "$APK_MD5" "${{ steps.v.outputs.version }}" "${{ steps.v.outputs.build }}" <<'PY'
+          TV_MD5=$(md5sum target/JellyfinTV.apk | cut -d' ' -f1)
+          python3 - "$MD5" "$APK_MD5" "$TV_MD5" "${{ steps.v.outputs.version }}" "${{ steps.v.outputs.build }}" <<'PY'
           import json, sys
-          md5, apk_md5, ver, build = sys.argv[1:5]
+          md5, apk_md5, tv_md5, ver, build = sys.argv[1:6]
           d = json.load(open('version.json'))
           w = d['windows']
           w.update(build=int(build), version=ver, md5=md5,
@@ -62,6 +68,9 @@ jobs:
           m = d['mobile']
           m.update(build=int(build), version=ver, md5=apk_md5,
                    url=f"https://github.com/Chronixx4/JellyfinPC/releases/download/v{ver}/JellyfinMobile.apk")
+          t = d['tv']
+          t.update(build=int(build), version=ver, md5=tv_md5,
+                   url=f"https://github.com/Chronixx4/JellyfinPC/releases/download/v{ver}/JellyfinTV.apk")
           json.dump(d, open('version.json', 'w'), indent=2, ensure_ascii=False)
           PY
           git config user.name "github-actions"

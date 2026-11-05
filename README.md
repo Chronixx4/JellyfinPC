@@ -34,7 +34,6 @@ Der Workflow `.github/workflows/release.yml` baut dann die EXE, legt das Release
 ## Handy-/Tablet-App (Android, `android/`)
 Gradle-Projekt mit zwei Modulen: `core` (Jellyfin-REST-Client `Jf`/`JfItem`, vom PC-Code abgeleitet, auch für die spätere TV-App gedacht)
 und `mobile` (Touch-Oberfläche, Paket `de.marvin.jellyfin.mobile`, Player auf Media3/ExoPlayer).
-Eine spätere Android-TV/Fire-TV-App kommt als drittes Modul `tv` neben `mobile` und nutzt `core` mit.
 
 Funktionen (seit 3.0 wie die PC-App, außer Gemeinsam schauen/Controller/Farbdesign): Anmeldung (Passwort/Quick Connect/Profile), Start (Weiter schauen, Als Nächstes, Neu in …), Bibliotheken mit Sortierung/Filter/Genre,
 Suche, Merkliste, Details (Besetzung, Staffeln/Folgen, Ähnliche), gesehen/Merkliste setzen (auch per langem Drücken),
@@ -59,3 +58,12 @@ und `POST /Sessions/Capabilities/Full`). In der Handy-App öffnet das TV-Symbol 
 dann Pause/Weiter, ±Sprung, Spulen, nächste Folge, Stop und Lautstärke. Auf jeder Detailseite startet das TV-Symbol
 neben „Abspielen“ den Titel auf dem gewählten Gerät. Andere Clients (z. B. die TV-App) erscheinen automatisch, sobald sie
 sich genauso anmelden (`Remote.java` als Vorlage).
+
+## TV-App (Android TV / Fire TV, `android/tv`)
+Eigenes Modul `tv` (Paket `de.marvin.jellyfin.tv`) mit Oberfläche für die Fernbedienung (D-Pad): größere Darstellung für 3 m Abstand,
+sichtbarer Fokusrahmen an allen Elementen, Quick Connect als Standard-Anmeldung, Player mit Pfeiltasten (←/→ ±10 s, OK = Pause,
+↑/↓ = Bedienleiste, Medientasten). Inhalte und Funktionen entsprechen sonst der Handy-App (Start, Bibliotheken, Suche, Details,
+Statistik, Listen/Sammlungen, Profile, Vorspann/Abspann überspringen, Schlaf-Timer, Ton/Untertitel).
+Die TV-App ist wie die PC-App fernsteuerbar: Sie taucht in der Fernsteuerung der Handy-App als Gerät „Jellyfin TV“ auf.
+Das Release enthält `JellyfinTV.apk`; die App aktualisiert sich über den Eintrag `tv` in `version.json`.
+Auf einen Fire TV installieren (ADB-Debugging am Fire TV einschalten): `adb connect <IP>:5555` und `adb install -r JellyfinTV.apk`.
