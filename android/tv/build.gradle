@@ -37,6 +37,16 @@ android {
     }
     sourceSets { main { assets.srcDirs += ['../../shared'] } }
     lint { abortOnError false }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Optional: Robolectric offline mit vorab geladenem android-all-Jar (z. B. hinter Proxy)
+            if (System.getenv('ROBO_DIR')) {
+                systemProperty 'robolectric.offline', 'true'
+                systemProperty 'robolectric.dependency.dir', System.getenv('ROBO_DIR')
+            }
+        }
+    }
 }
 
 dependencies {
@@ -47,5 +57,9 @@ dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.4.1'
     implementation 'androidx.media3:media3-exoplayer-hls:1.4.1'
     implementation 'androidx.media3:media3-ui:1.4.1'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.12.2'
+    testImplementation 'androidx.test:core:1.5.0'
 
 }

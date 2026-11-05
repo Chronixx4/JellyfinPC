@@ -55,6 +55,7 @@ final class Cards {
             int m = Ui.dp(a, 5);
             lp.setMargins(m, m, m, m);
             col.setLayoutParams(lp);
+            Ui.focusFx(col);
 
             FrameLayout frame = new FrameLayout(a);
             frame.setBackground(Ui.outlined(a, Ui.CARD, 0x14FFFFFF, 12));

@@ -36,12 +36,17 @@ final class Ui {
 
     private Ui() {}
 
-    /** Alles ist fuer 3 m Abstand ("10-foot") um diesen Faktor groesser als auf dem Handy. */
-    static final float SCALE = 1.3f;
+    /**
+     * Fernseher melden je nach Modell ganz verschiedene Dichten (Fire TV 1080p = 1280 dp breit, Android TV = 1440 dp).
+     * Darum rechnet die TV-App nicht in dp, sondern in "Einheiten" einer festen Entwurfsbreite von 960: auf einem
+     * 1080p-Bild ist eine Einheit 2 Pixel, auf 4K 4 Pixel. So sieht das Layout ueberall gleich gross aus.
+     */
+    /** Seitenrand (Overscan-sicher) und Standardgroesse runder Symbolknoepfe. */
+    static final float PAD = 40, ICON = 36;
 
-    static int dp(Context c, float v) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v * SCALE, c.getResources().getDisplayMetrics()));
-    }
+    static float unit(Context c) { return c.getResources().getDisplayMetrics().widthPixels / 960f; }
+
+    static int dp(Context c, float v) { return Math.round(v * unit(c)); }
 
     /** Fokusrahmen fuer die Fernbedienung: heller Rand + leichtes Vergroessern, solange das Element den Fokus hat. */
     static void ring(View v, float radiusDp) {
@@ -61,7 +66,7 @@ final class Ui {
     static TextView text(Context c, String s, float sp, int color, boolean bold) {
         TextView t = new TextView(c);
         t.setText(s);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * SCALE);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, sp * unit(c));
         t.setTextColor(color);
         if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
         return t;
@@ -89,6 +94,8 @@ final class Ui {
     /** Macht alle Elemente mit Klick-Aktion fuer die Fernbedienung fokussierbar. */
     static void makeFocusable(View v) {
         if (!v.isFocusable() && v.hasOnClickListeners()) ring(v, 12);
+        if (v instanceof android.widget.ScrollView) ((android.widget.ScrollView) v).setVerticalScrollBarEnabled(false);
+        if (v instanceof androidx.recyclerview.widget.RecyclerView) v.setVerticalScrollBarEnabled(false);
         if (v instanceof android.view.ViewGroup) {
             android.view.ViewGroup g = (android.view.ViewGroup) v;
             for (int i = 0; i < g.getChildCount(); i++) makeFocusable(g.getChildAt(i));
@@ -111,22 +118,22 @@ final class Ui {
             super(c);
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER);
-            setMinimumHeight(dp(c, 48));
-            setPadding(dp(c, 20), 0, dp(c, 20), 0);
-            setBackground(primary ? gradient(c, 26) : outlined(c, 0x1FFFFFFF, LINE, 26));
+            setMinimumHeight(dp(c, 36));
+            setPadding(dp(c, 16), 0, dp(c, 16), 0);
+            setBackground(primary ? gradient(c, 18) : outlined(c, 0x1FFFFFFF, LINE, 18));
             setClickable(true);
-            ring(this, 26);
+            ring(this, 18);
             if (primary) setElevation(dp(c, 3));
             if (iconName != null) {
-                icon = Ui.icon(c, iconName, 20, Color.WHITE);
+                icon = Ui.icon(c, iconName, 17, Color.WHITE);
                 addView(icon);
             }
-            label = text(c, text == null ? "" : text, 15, Color.WHITE, true);
+            label = text(c, text == null ? "" : text, 13, Color.WHITE, true);
             label.setSingleLine(true);
             label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             if (text != null && !text.isEmpty()) {
                 LayoutParams lp = new LayoutParams(-2, -2);
-                lp.leftMargin = iconName != null ? dp(c, 8) : 0;
+                lp.leftMargin = iconName != null ? dp(c, 6) : 0;
                 addView(label, lp);
             }
         }
@@ -155,19 +162,19 @@ final class Ui {
 
     /** Umschalt-Pille (.toggle-pill): ausgewaehlt = Farbverlauf. */
     static TextView chip(Context c, String label, boolean selected) {
-        TextView t = text(c, label, 14, TEXT, true);
+        TextView t = text(c, label, 13, TEXT, true);
         t.setGravity(Gravity.CENTER);
-        t.setMinHeight(dp(c, 40));
-        t.setPadding(dp(c, 16), 0, dp(c, 16), 0);
+        t.setMinHeight(dp(c, 30));
+        t.setPadding(dp(c, 14), 0, dp(c, 14), 0);
         t.setClickable(true);
-        ring(t, 20);
+        ring(t, 15);
         restyleChip(t, selected);
         return t;
     }
 
     static void restyleChip(TextView t, boolean selected) {
         Context c = t.getContext();
-        t.setBackground(selected ? gradient(c, 20) : round(0x14FFFFFF, 20, c));
+        t.setBackground(selected ? gradient(c, 15) : round(0x14FFFFFF, 15, c));
         t.setTextColor(selected ? Color.WHITE : Color.parseColor("#C8D2DC"));
     }
 

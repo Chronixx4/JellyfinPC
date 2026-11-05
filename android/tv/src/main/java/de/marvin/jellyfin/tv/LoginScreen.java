@@ -34,11 +34,13 @@ final class LoginScreen extends Screen {
         e.setSingleLine(true);
         e.setMinHeight(Ui.dp(a, 52));
         e.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), 0);
-        e.setBackground(Ui.outlined(a, 0x12FFFFFF, Ui.LINE, 12));
+        android.graphics.drawable.StateListDrawable bg = new android.graphics.drawable.StateListDrawable();
+        bg.addState(new int[]{android.R.attr.state_focused}, Ui.outlined(a, 0x26FFFFFF, android.graphics.Color.WHITE, 12));
+        bg.addState(new int[]{}, Ui.outlined(a, 0x12FFFFFF, Ui.LINE, 12));
+        e.setBackground(bg);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = Ui.dp(a, 12);
         e.setLayoutParams(lp);
-        Ui.ring(e, 12);
         return e;
     }
 
@@ -66,6 +68,7 @@ final class LoginScreen extends Screen {
         LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(-1, -2);
         lp2.topMargin = Ui.dp(a, 20);
         col.addView(qc, lp2);
+        qc.post(qc::requestFocus);
 
         server = field("Server (z. B. 192.168.178.80:8097)", a.jf.server, InputType.TYPE_TEXT_VARIATION_URI);
         user = field("Benutzername", a.jf.userName, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
@@ -130,7 +133,7 @@ final class LoginScreen extends Screen {
             if (codeSecret == null) { status.setText("Quick Connect am Server nicht verfügbar."); return; }
             status.setText("Gib in Jellyfin (Web oder andere App) unter „Quick Connect“ diesen Code ein:\n\n" + codeSecret[0]);
             status.setTextColor(Ui.TEXT);
-            status.setTextSize(Ui.SCALE * 18);
+            status.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, Ui.dp(a, 18));
             polling = true;
             poll(codeSecret[1], 0);
         });

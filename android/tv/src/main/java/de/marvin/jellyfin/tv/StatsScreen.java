@@ -40,8 +40,8 @@ final class StatsScreen extends Screen {
         root.setOrientation(LinearLayout.VERTICAL);
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(Ui.dp(a, 8), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 4));
-        android.widget.ImageView back = Ui.iconButton(a, "back", 44, false);
+        bar.setPadding(Ui.dp(a, Ui.PAD - 6), Ui.dp(a, 12), Ui.dp(a, 16), Ui.dp(a, 6));
+        android.widget.ImageView back = Ui.iconButton(a, "back", Ui.ICON, false);
         back.setOnClickListener(v -> a.pop());
         bar.addView(back);
         bar.addView(Ui.text(a, "Deine Statistik", 22, Ui.TEXT, true));
@@ -49,7 +49,7 @@ final class StatsScreen extends Screen {
         ScrollView sv = new ScrollView(a);
         col = new LinearLayout(a);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), Ui.dp(a, 24));
+        col.setPadding(Ui.dp(a, Ui.PAD), 0, Ui.dp(a, Ui.PAD), Ui.dp(a, 24));
         sv.addView(col);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
         col.addView(Ui.text(a, "Lädt …", 15, Ui.MUTED, false));

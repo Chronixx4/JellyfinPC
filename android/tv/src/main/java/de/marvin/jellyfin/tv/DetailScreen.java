@@ -26,6 +26,7 @@ final class DetailScreen extends Screen {
     private String seasonId;
     private ArrayList<JfItem> seasons = new ArrayList<>();
     private JfItem nextUp;
+    private Ui.Btn playButton;
 
     DetailScreen(MainActivity a, JfItem it) {
         super(a);
@@ -35,19 +36,23 @@ final class DetailScreen extends Screen {
     @Override
     View build() {
         FrameLayout frame = new FrameLayout(a);
+        // Hintergrundbild fest hinter der Seite, unten in die Hintergrundfarbe ausgeblendet
+        ImageView bd = new ImageView(a);
+        bd.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        String url = a.jf.backdrop(item);
+        if (url == null) url = a.jf.landscape(item);
+        Ui.load(bd, url);
+        frame.addView(bd, new FrameLayout.LayoutParams(-1, Ui.dp(a, 340)));
+        View fade = new View(a);
+        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x990A0D12, 0xCC0A0D12, Ui.BG}));
+        frame.addView(fade, new FrameLayout.LayoutParams(-1, Ui.dp(a, 340)));
         ScrollView sv = new ScrollView(a);
+        sv.setVerticalScrollBarEnabled(false);
         col = new LinearLayout(a);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(0, 0, 0, Ui.dp(a, 32));
         sv.addView(col, new ScrollView.LayoutParams(-1, -2));
         frame.addView(sv, new FrameLayout.LayoutParams(-1, -1));
-
-        ImageView back = Ui.iconButton(a, "back", 44, true);
-        back.setBackground(Ui.outlined(a, 0x99000000, Ui.LINE, 22));
-        back.setOnClickListener(v -> a.pop());
-        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(Ui.dp(a, 44), Ui.dp(a, 44), Gravity.TOP | Gravity.START);
-        bl.setMargins(Ui.dp(a, 10), Ui.dp(a, 10), 0, 0);
-        frame.addView(back, bl);
 
         render();
         a.bg(() -> {
@@ -95,8 +100,9 @@ final class DetailScreen extends Screen {
     }
 
     private void addMeta(LinearLayout row, View v) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-        lp.rightMargin = Ui.dp(a, 6);
+        LinearLayout.LayoutParams lp = v instanceof ImageView && v.getLayoutParams() instanceof LinearLayout.LayoutParams
+                ? (LinearLayout.LayoutParams) v.getLayoutParams() : new LinearLayout.LayoutParams(-2, -2);
+        lp.rightMargin = Ui.dp(a, 8);
         row.addView(v, lp);
     }
 
@@ -109,57 +115,82 @@ final class DetailScreen extends Screen {
 
     private void render() {
         col.removeAllViews();
-        // Hintergrundbild mit Verlauf nach unten
-        FrameLayout hero = new FrameLayout(a);
-        ImageView bd = new ImageView(a);
-        bd.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        String url = a.jf.backdrop(item);
-        if (url == null) url = a.jf.landscape(item);
-        Ui.load(bd, url);
-        hero.addView(bd, new FrameLayout.LayoutParams(-1, -1));
-        View fade = new View(a);
-        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x330A0D12, 0x990A0D12, Ui.BG}));
-        hero.addView(fade, new FrameLayout.LayoutParams(-1, -1));
-        col.addView(hero, new LinearLayout.LayoutParams(-1, Ui.dp(a, 250)));
+        int side = Ui.dp(a, Ui.PAD);
 
-        int pad = Ui.dp(a, 16);
         LinearLayout body = new LinearLayout(a);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(pad, 0, pad, 0);
+        body.setPadding(side, Ui.dp(a, 26), side, 0);
         col.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
+        // Oben: Poster links, Infos rechts (Hintergrundbild liegt fest hinter der ganzen Seite)
+        LinearLayout top = new LinearLayout(a);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        body.addView(top, new LinearLayout.LayoutParams(-1, -2));
+        ImageView poster = new ImageView(a);
+        poster.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        poster.setBackground(Ui.outlined(a, Ui.CARD, 0x22FFFFFF, 10));
+        poster.setClipToOutline(true);
+        Ui.load(poster, "Episode".equals(item.type) ? a.jf.landscape(item) : a.jf.poster(item));
+        boolean wide = "Episode".equals(item.type);
+        top.addView(poster, new LinearLayout.LayoutParams(Ui.dp(a, wide ? 230 : 140), Ui.dp(a, wide ? 130 : 210)));
+
+        LinearLayout info = new LinearLayout(a);
+        info.setOrientation(LinearLayout.VERTICAL);
+        info.setPadding(Ui.dp(a, 24), 0, 0, 0);
+        top.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+
         String head = "Episode".equals(item.type) && !item.seriesName.isEmpty() ? item.seriesName : item.name;
-        TextView title = Ui.text(a, head, 30, Ui.TEXT, true);
+        TextView title = Ui.text(a, head, 28, Ui.TEXT, true);
+        title.setMaxLines(2);
         title.setShadowLayer(8, 0, 2, 0xCC000000);
-        body.addView(title);
-        if ("Episode".equals(item.type)) body.addView(Ui.text(a, item.title(), 15, Ui.MUTED, false));
+        info.addView(title);
+        if ("Episode".equals(item.type)) info.addView(Ui.text(a, item.title(), 15, Ui.MUTED, false));
 
         LinearLayout meta = new LinearLayout(a);
         meta.setGravity(Gravity.CENTER_VERTICAL);
-        meta.setPadding(0, Ui.dp(a, 8), 0, 0);
+        meta.setPadding(0, Ui.dp(a, 6), 0, 0);
         if (item.year > 0) addMeta(meta, Ui.badge(a, String.valueOf(item.year), null));
         if (item.rating > 0) addMeta(meta, Ui.badge(a, String.format(java.util.Locale.GERMANY, "%.1f", item.rating), "star"));
         if (!item.officialRating.isEmpty()) addMeta(meta, Ui.badge(a, item.officialRating, null));
         if (item.runTicks > 0) addMeta(meta, Ui.badge(a, item.runtime(), null));
-        if (meta.getChildCount() > 0) body.addView(meta);
+        for (String b : item.badges()) addMeta(meta, Ui.badge(a, b, null));
+        if (meta.getChildCount() > 0) info.addView(meta);
         if (!item.genres.isEmpty()) {
-            TextView g = Ui.text(a, item.genres, 14, Ui.MUTED, false);
-            g.setPadding(0, Ui.dp(a, 2), 0, 0);
-            body.addView(g);
+            TextView g = Ui.text(a, item.genres, 13, Ui.MUTED, false);
+            g.setPadding(0, Ui.dp(a, 6), 0, 0);
+            info.addView(g);
         }
-        ArrayList<String> badges = item.badges();
-        if (!badges.isEmpty()) {
-            LinearLayout row = new LinearLayout(a);
-            row.setPadding(0, Ui.dp(a, 10), 0, 0);
-            for (String b : badges) addMeta(row, Ui.badge(a, b, null));
-            body.addView(row);
+        if (!item.tagline.isEmpty()) {
+            TextView tl = Ui.text(a, item.tagline, 13, Ui.ACCENT2, false);
+            tl.setTypeface(null, android.graphics.Typeface.ITALIC);
+            tl.setPadding(0, Ui.dp(a, 6), 0, 0);
+            info.addView(tl);
+        }
+        if (!item.overview.isEmpty()) {
+            TextView ov = Ui.text(a, item.overview, 13, 0xFFDDDDDD, false);
+            ov.setLineSpacing(0, 1.1f);
+            ov.setMaxLines(4);
+            ov.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            ov.setPadding(0, Ui.dp(a, 8), 0, 0);
+            ov.setOnClickListener(v -> {
+                boolean collapsed = ov.getMaxLines() == 4;
+                ov.setMaxLines(collapsed ? 100 : 4);
+            });
+            info.addView(ov);
+        }
+        if (!item.audioLangs.isEmpty() || !item.subLangs.isEmpty()) {
+            TextView l = Ui.text(a, (item.audioLangs.isEmpty() ? "" : "Ton: " + item.audioLangs)
+                    + (!item.audioLangs.isEmpty() && !item.subLangs.isEmpty() ? "   ·   " : "")
+                    + (item.subLangs.isEmpty() ? "" : "Untertitel: " + item.subLangs), 12, Ui.MUTED, false);
+            l.setPadding(0, Ui.dp(a, 8), 0, 0);
+            info.addView(l);
         }
 
-        // Knoepfe (wie auf der PC-Detailseite: Verlaufsknopf, Glasknopf, runde Symbolknoepfe)
+        // Knoepfe in einer Reihe: Abspielen, Neustart, Merkliste, Gesehen, Trailer, Listen
         JfItem target = "Series".equals(item.type) ? nextUp : item;
         LinearLayout btns = new LinearLayout(a);
         btns.setGravity(Gravity.CENTER_VERTICAL);
-        btns.setPadding(0, Ui.dp(a, 16), 0, 0);
+        btns.setPadding(0, Ui.dp(a, 14), 0, 0);
         if (item.isPlayable() || target != null) {
             JfItem t = target != null ? target : item;
             boolean resume = t.resumeTicks > 0;
@@ -167,75 +198,38 @@ final class DetailScreen extends Screen {
             if ("Series".equals(item.type)) label += "  " + t.title();
             Ui.Btn play = Ui.button(a, "play", label, true);
             play.setOnClickListener(v -> a.play(t, t.resumeTicks));
-            btns.addView(play, new LinearLayout.LayoutParams(0, -2, 1));
+            addMeta(btns, play);
+            playButton = play;
             if (resume) {
-                ImageView again = Ui.iconButton(a, "restart", 48, true);
+                ImageView again = Ui.iconButton(a, "restart", Ui.ICON, true);
                 again.setOnClickListener(v -> a.play(t, 0));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
-                lp.leftMargin = Ui.dp(a, 8);
-                btns.addView(again, lp);
+                addMeta(btns, again);
             }
         }
-        ImageView fav = Ui.iconButton(a, item.favorite ? "heartOn" : "heart", 48, true);
+        ImageView fav = Ui.iconButton(a, item.favorite ? "heartOn" : "heart", Ui.ICON, true);
         fav.setOnClickListener(v -> a.bg(() -> { a.jf.setFavorite(item.id, !item.favorite); return true; }, ok -> { if (ok != null) refresh(); }));
-        ImageView seen = Ui.iconButton(a, item.played ? "checkCircle" : "circle", 48, true);
+        addMeta(btns, fav);
+        ImageView seen = Ui.iconButton(a, item.played ? "checkCircle" : "circle", Ui.ICON, true);
         seen.setOnClickListener(v -> a.bg(() -> { a.jf.setPlayed(item.id, !item.played); return true; }, ok -> { if (ok != null) refresh(); }));
-        for (ImageView t : new ImageView[]{fav, seen}) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
-            lp.leftMargin = Ui.dp(a, 8);
-            btns.addView(t, lp);
-        }
-        body.addView(btns);
-
-        // Weitere Aktionen wie in der PC-App: Trailer, Herunterladen, zu Liste/Sammlung
-        HorizontalScrollView more = new HorizontalScrollView(a);
-        more.setHorizontalScrollBarEnabled(false);
-        LinearLayout moreRow = new LinearLayout(a);
-        moreRow.setPadding(0, Ui.dp(a, 12), 0, 0);
+        addMeta(btns, seen);
         if (item.trailerUrl != null && !item.trailerUrl.isEmpty()) {
             Ui.Btn tr = Ui.button(a, "movie", "Trailer", false);
             tr.setOnClickListener(v -> {
                 try { a.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(item.trailerUrl))); }
                 catch (Exception e) { a.toast("Kein Programm für den Trailer gefunden"); }
             });
-            addMeta(moreRow, tr);
+            addMeta(btns, tr);
         }
         if (item.isPlayable() || "Series".equals(item.type)) {
-            Ui.Btn pl = Ui.button(a, "viewList", "Wiedergabeliste", false);
+            Ui.Btn pl = Ui.button(a, "viewList", "Liste", false);
             pl.setOnClickListener(v -> Lists.addTo(a, item, true));
-            addMeta(moreRow, pl);
+            addMeta(btns, pl);
             Ui.Btn bs = Ui.button(a, "add", "Sammlung", false);
             bs.setOnClickListener(v -> Lists.addTo(a, item, false));
-            addMeta(moreRow, bs);
+            addMeta(btns, bs);
         }
-        more.addView(moreRow);
-        body.addView(more);
-
-        if (!item.tagline.isEmpty()) {
-            TextView tl = Ui.text(a, item.tagline, 15, Ui.ACCENT2, false);
-            tl.setTypeface(null, android.graphics.Typeface.ITALIC);
-            tl.setPadding(0, Ui.dp(a, 16), 0, 0);
-            body.addView(tl);
-        }
-        if (!item.overview.isEmpty()) {
-            TextView ov = Ui.text(a, item.overview, 15, 0xFFDDDDDD, false);
-            ov.setLineSpacing(0, 1.15f);
-            ov.setMaxLines(5);
-            ov.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            ov.setPadding(0, Ui.dp(a, 12), 0, 0);
-            ov.setOnClickListener(v -> {
-                boolean collapsed = ov.getMaxLines() == 5;
-                ov.setMaxLines(collapsed ? 100 : 5);
-            });
-            body.addView(ov);
-        }
-        if (!item.audioLangs.isEmpty() || !item.subLangs.isEmpty()) {
-            TextView l = Ui.text(a, (item.audioLangs.isEmpty() ? "" : "Ton: " + item.audioLangs)
-                    + (!item.audioLangs.isEmpty() && !item.subLangs.isEmpty() ? "\n" : "")
-                    + (item.subLangs.isEmpty() ? "" : "Untertitel: " + item.subLangs), 13, Ui.MUTED, false);
-            l.setPadding(0, Ui.dp(a, 12), 0, 0);
-            body.addView(l);
-        }
+        info.addView(btns);
+        if (playButton != null) playButton.post(playButton::requestFocus);
 
         // Staffeln + Folgen (werden spaeter gefuellt)
         if (!seasons.isEmpty()) {
@@ -278,21 +272,21 @@ final class DetailScreen extends Screen {
                 c.setGravity(Gravity.CENTER_HORIZONTAL);
                 ImageView im = new ImageView(a);
                 im.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                im.setBackground(Ui.round(Ui.CARD, 40, a));
+                im.setBackground(Ui.round(Ui.CARD, 32, a));
                 im.setClipToOutline(true);
                 Ui.load(im, a.jf.personImage(p));
-                c.addView(im, new LinearLayout.LayoutParams(Ui.dp(a, 80), Ui.dp(a, 80)));
+                c.addView(im, new LinearLayout.LayoutParams(Ui.dp(a, 64), Ui.dp(a, 64)));
                 TextView nm = Ui.text(a, p.name, 12, Ui.TEXT, true);
                 nm.setGravity(Gravity.CENTER);
                 nm.setMaxLines(2);
                 nm.setPadding(0, Ui.dp(a, 4), 0, 0);
-                c.addView(nm, new LinearLayout.LayoutParams(Ui.dp(a, 90), -2));
+                c.addView(nm, new LinearLayout.LayoutParams(Ui.dp(a, 80), -2));
                 if (!p.role.isEmpty()) {
                     TextView ro = Ui.text(a, p.role, 11, Ui.MUTED, false);
                     ro.setGravity(Gravity.CENTER);
                     ro.setMaxLines(1);
                     ro.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                    c.addView(ro, new LinearLayout.LayoutParams(Ui.dp(a, 90), -2));
+                    c.addView(ro, new LinearLayout.LayoutParams(Ui.dp(a, 80), -2));
                 }
                 c.setOnClickListener(v -> a.push(new ListScreen(a, p.name,
                         (jf, s) -> jf.byPerson(p.id, s, PAGE_SIZE))));
@@ -323,9 +317,10 @@ final class DetailScreen extends Screen {
         similarHolder.addView(h);
         RecyclerView rv = new RecyclerView(a);
         rv.setLayoutManager(new LinearLayoutManager(a, LinearLayoutManager.HORIZONTAL, false));
-        Cards.Adapter ad = new Cards.Adapter(a, false, 120);
+        Cards.Adapter ad = new Cards.Adapter(a, false, 112);
         ad.set(sim);
         rv.setAdapter(ad);
+        rv.setClipToPadding(false);
         similarHolder.addView(rv, new LinearLayout.LayoutParams(-1, -2));
     }
 
@@ -360,7 +355,7 @@ final class DetailScreen extends Screen {
             pb.getProgressDrawable().setTint(Ui.ACCENT2);
             th.addView(pb, new FrameLayout.LayoutParams(-1, Ui.dp(a, 4), Gravity.BOTTOM));
         }
-        row.addView(th, new LinearLayout.LayoutParams(Ui.dp(a, 130), Ui.dp(a, 74)));
+        row.addView(th, new LinearLayout.LayoutParams(Ui.dp(a, 150), Ui.dp(a, 84)));
 
         LinearLayout txt = new LinearLayout(a);
         txt.setOrientation(LinearLayout.VERTICAL);

@@ -20,7 +20,7 @@ final class AccountScreen extends Screen {
         s.setTrackTintList(android.content.res.ColorStateList.valueOf(Ui.CARD2));
         s.setText(label);
         s.setTextColor(Ui.TEXT);
-        s.setTextSize(16);
+        s.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, Ui.dp(a, 16));
         s.setChecked(on);
         s.setMinHeight(Ui.dp(a, 56));
         s.setOnCheckedChangeListener(l);
@@ -31,13 +31,13 @@ final class AccountScreen extends Screen {
     View build() {
         LinearLayout col = new LinearLayout(a);
         col.setOrientation(LinearLayout.VERTICAL);
-        int pad = Ui.dp(a, 20);
-        col.setPadding(pad, 0, pad, pad);
+        int pad = Ui.dp(a, Ui.PAD);
+        col.setPadding(pad, 0, Ui.dp(a, 400), pad);
 
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(Ui.dp(a, 8), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 4));
-        android.widget.ImageView back = Ui.iconButton(a, "back", 44, false);
+        bar.setPadding(Ui.dp(a, Ui.PAD - 6), Ui.dp(a, 12), Ui.dp(a, 16), Ui.dp(a, 6));
+        android.widget.ImageView back = Ui.iconButton(a, "back", Ui.ICON, false);
         back.setOnClickListener(v -> a.pop());
         bar.addView(back);
         bar.addView(Ui.text(a, "Konto", 22, Ui.TEXT, true));
