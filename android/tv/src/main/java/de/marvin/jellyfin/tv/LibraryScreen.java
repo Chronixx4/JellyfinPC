@@ -41,7 +41,7 @@ final class LibraryScreen extends GridScreen {
         HorizontalScrollView hs = new HorizontalScrollView(a);
         hs.setHorizontalScrollBarEnabled(false);
         chips = new LinearLayout(a);
-        chips.setPadding(Ui.dp(a, 12), Ui.dp(a, 4), Ui.dp(a, 12), Ui.dp(a, 8));
+        chips.setPadding(Ui.dp(a, Ui.PAD), Ui.dp(a, 4), Ui.dp(a, Ui.PAD), Ui.dp(a, 8));
         hs.addView(chips);
         return hs;
     }

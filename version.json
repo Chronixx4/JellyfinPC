@@ -11,7 +11,7 @@
     "version": "3.3",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v3.3/JellyfinTV.apk",
     "md5": "26a1df10af7473691723ef3fed7685bf",
-    "notes": ""
+    "notes": "Neue Oberfläche für den Fernseher: feste Größen (auf jedem TV gleich), Kopfleiste in einer Zeile, Detailseite mit Poster, Fokusrahmen und Überscan-Rand."
   },
   "mobile": {
     "build": 33,

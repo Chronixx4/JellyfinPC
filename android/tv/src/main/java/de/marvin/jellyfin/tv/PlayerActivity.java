@@ -147,7 +147,7 @@ public class PlayerActivity extends Activity {
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(Ui.dp(this, 8), Ui.dp(this, 4), Ui.dp(this, 8), 0);
+        top.setPadding(Ui.dp(this, Ui.PAD - 6), Ui.dp(this, 18), Ui.dp(this, Ui.PAD - 6), 0);
         ImageView back = sym("back", 52);
         back.setOnClickListener(v -> finish());
         top.addView(back);
@@ -198,7 +198,7 @@ public class PlayerActivity extends Activity {
         // Unten: Zeit + Leiste
         LinearLayout bottom = new LinearLayout(this);
         bottom.setGravity(Gravity.CENTER_VERTICAL);
-        bottom.setPadding(Ui.dp(this, 16), 0, Ui.dp(this, 16), Ui.dp(this, 8));
+        bottom.setPadding(Ui.dp(this, Ui.PAD), 0, Ui.dp(this, Ui.PAD), Ui.dp(this, 22));
         posView = Ui.text(this, "0:00", 13, Color.WHITE, false);
         durView = Ui.text(this, "0:00", 13, Color.WHITE, false);
         seek = new SeekBar(this);
@@ -236,7 +236,7 @@ public class PlayerActivity extends Activity {
         skipIntro.setVisibility(View.GONE);
         skipIntro.setOnClickListener(v -> { if (player != null && introEndMs > 0) player.seekTo(introEndMs); });
         FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
-        sl.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
+        sl.setMargins(0, 0, Ui.dp(this, Ui.PAD), Ui.dp(this, 90));
         root.addView(skipIntro, sl);
 
         outroBtn = Ui.button(this, "next", "Abspann überspringen", false);
@@ -247,14 +247,14 @@ public class PlayerActivity extends Activity {
             else if (player != null && outroEndMs > 0) player.seekTo(Math.min(outroEndMs, Math.max(duration() - 500, 0)));
         });
         FrameLayout.LayoutParams ol = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
-        ol.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
+        ol.setMargins(0, 0, Ui.dp(this, Ui.PAD), Ui.dp(this, 90));
         root.addView(outroBtn, ol);
 
         nextBtn = Ui.button(this, "next", "Nächste Folge", true);
         nextBtn.setVisibility(View.GONE);
         nextBtn.setOnClickListener(v -> playNext());
         FrameLayout.LayoutParams nl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
-        nl.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
+        nl.setMargins(0, 0, Ui.dp(this, Ui.PAD), Ui.dp(this, 90));
         root.addView(nextBtn, nl);
 
         immersive();

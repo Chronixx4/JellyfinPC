@@ -29,32 +29,33 @@ final class HomeScreen extends Screen {
     View build() {
         LinearLayout page = new LinearLayout(a);
         page.setOrientation(LinearLayout.VERTICAL);
+        int side = Ui.dp(a, Ui.PAD);
 
-        // Kopfleiste: Marke, Suche, Einstellungen
+        // Kopfleiste in einer Zeile: Marke, Reiter (Start, Bibliotheken ...), Suche, Einstellungen
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(Ui.dp(a, 24), Ui.dp(a, 8), Ui.dp(a, 24), Ui.dp(a, 2));
-        bar.addView(Ui.brand(a, "Jellyfin", 24), new LinearLayout.LayoutParams(0, -2, 1));
-        ImageView search = Ui.iconButton(a, "search", 48, true);
+        bar.setPadding(side, Ui.dp(a, 14), side, Ui.dp(a, 8));
+        bar.addView(Ui.brand(a, "Jellyfin", 22));
+        HorizontalScrollView hs = new HorizontalScrollView(a);
+        hs.setHorizontalScrollBarEnabled(false);
+        hs.setClipChildren(false);
+        nav = new LinearLayout(a);
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+        nav.setPadding(Ui.dp(a, 24), Ui.dp(a, 4), Ui.dp(a, 8), Ui.dp(a, 4));
+        hs.addView(nav);
+        bar.addView(hs, new LinearLayout.LayoutParams(0, -2, 1));
+        ImageView search = Ui.iconButton(a, "search", Ui.ICON, true);
         search.setOnClickListener(v -> a.push(new SearchScreen(a)));
-        ImageView settings = Ui.iconButton(a, "settings", 48, true);
+        ImageView settings = Ui.iconButton(a, "settings", Ui.ICON, true);
         settings.setOnClickListener(v -> a.push(new AccountScreen(a)));
         bar.addView(search);
-        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(Ui.dp(a, 48), Ui.dp(a, 48));
-        sl.leftMargin = Ui.dp(a, 8);
-        sl.rightMargin = 0;
+        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(Ui.dp(a, Ui.ICON), Ui.dp(a, Ui.ICON));
+        sl.leftMargin = Ui.dp(a, 10);
         bar.addView(settings, sl);
         page.addView(bar, new LinearLayout.LayoutParams(-1, -2));
 
-        // Reiter wie in der PC-Kopfleiste: Start + Bibliotheken
-        HorizontalScrollView hs = new HorizontalScrollView(a);
-        hs.setHorizontalScrollBarEnabled(false);
-        nav = new LinearLayout(a);
-        nav.setPadding(Ui.dp(a, 12), Ui.dp(a, 4), Ui.dp(a, 12), Ui.dp(a, 8));
-        hs.addView(nav);
-        page.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-
         ScrollView sv = new ScrollView(a);
+        sv.setVerticalScrollBarEnabled(false);
         content = new LinearLayout(a);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(0, 0, 0, Ui.dp(a, 28));
@@ -67,8 +68,8 @@ final class HomeScreen extends Screen {
     @Override void refresh() { if (view != null) load(); }
 
     private TextView heading(String s, Runnable more) {
-        TextView t = Ui.text(a, s, 20, Ui.TEXT, true);
-        t.setPadding(Ui.dp(a, 16), Ui.dp(a, 20), Ui.dp(a, 16), Ui.dp(a, 6));
+        TextView t = Ui.text(a, s, 17, Ui.TEXT, true);
+        t.setPadding(Ui.dp(a, Ui.PAD), Ui.dp(a, 14), Ui.dp(a, Ui.PAD), Ui.dp(a, 4));
         if (more != null) {
             t.setCompoundDrawablesRelative(null, null, arrow(), null);
             t.setCompoundDrawablePadding(Ui.dp(a, 4));
@@ -88,9 +89,9 @@ final class HomeScreen extends Screen {
         content.addView(heading(head, more));
         RecyclerView rv = new RecyclerView(a);
         rv.setLayoutManager(new LinearLayoutManager(a, LinearLayoutManager.HORIZONTAL, false));
-        rv.setPadding(Ui.dp(a, 11), 0, Ui.dp(a, 11), 0);
+        rv.setPadding(Ui.dp(a, Ui.PAD - 5), 0, Ui.dp(a, Ui.PAD - 5), 0);
         rv.setClipToPadding(false);
-        Cards.Adapter ad = new Cards.Adapter(a, landscape, landscape ? 230 : 120);
+        Cards.Adapter ad = new Cards.Adapter(a, landscape, landscape ? 176 : 104);
         ad.onChanged = this::load;
         ad.set(items);
         rv.setAdapter(ad);
@@ -110,13 +111,16 @@ final class HomeScreen extends Screen {
         fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x330A0D12, 0x990A0D12, Ui.BG}));
         f.addView(fade, new FrameLayout.LayoutParams(-1, -1));
+        View left = new View(a);
+        left.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xE60A0D12, 0x990A0D12, 0x000A0D12}));
+        f.addView(left, new FrameLayout.LayoutParams(-1, -1));
 
         LinearLayout col = new LinearLayout(a);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(Ui.dp(a, 16), 0, Ui.dp(a, 16), Ui.dp(a, 14));
+        col.setPadding(Ui.dp(a, Ui.PAD), 0, 0, Ui.dp(a, 16));
         boolean ep = "Episode".equals(it.type);
-        TextView title = Ui.text(a, ep && !it.seriesName.isEmpty() ? it.seriesName : it.name, 28, Ui.TEXT, true);
-        title.setMaxLines(2);
+        TextView title = Ui.text(a, ep && !it.seriesName.isEmpty() ? it.seriesName : it.name, 26, Ui.TEXT, true);
+        title.setMaxLines(1);
         title.setShadowLayer(8, 0, 2, 0xCC000000);
         col.addView(title);
         if (ep) col.addView(Ui.text(a, it.title(), 15, Ui.MUTED, false));
@@ -131,15 +135,15 @@ final class HomeScreen extends Screen {
         col.addView(meta);
 
         if (!it.overview.isEmpty()) {
-            TextView ov = Ui.text(a, it.overview, 14, 0xFFD6DEE6, false);
+            TextView ov = Ui.text(a, it.overview, 12, 0xFFD6DEE6, false);
             ov.setMaxLines(2);
             ov.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            ov.setPadding(0, Ui.dp(a, 8), 0, 0);
+            ov.setPadding(0, Ui.dp(a, 6), 0, 0);
             col.addView(ov);
         }
 
         LinearLayout btns = new LinearLayout(a);
-        btns.setPadding(0, Ui.dp(a, 12), 0, 0);
+        btns.setPadding(0, Ui.dp(a, 10), 0, 0);
         Ui.Btn play = Ui.button(a, "play", it.resumeTicks > 0 ? "Fortsetzen" : "Abspielen", true);
         play.setOnClickListener(v -> a.play(it, it.resumeTicks));
         Ui.Btn info = Ui.button(a, "info", "Info", false);
@@ -151,7 +155,7 @@ final class HomeScreen extends Screen {
         btns.addView(info, il);
         col.addView(btns);
 
-        f.addView(col, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
+        f.addView(col, new FrameLayout.LayoutParams(Ui.dp(a, 520), -2, Gravity.BOTTOM | Gravity.START));
         return f;
     }
 
@@ -203,8 +207,7 @@ final class HomeScreen extends Screen {
             JfItem heroItem = !resume.isEmpty() ? resume.get(0) : !next.isEmpty() ? next.get(0) : null;
             if (heroItem == null) for (ArrayList<JfItem> l : latest) if (!l.isEmpty()) { heroItem = l.get(0); break; }
             if (heroItem != null) {
-                int h = Math.min(Ui.dp(a, 360), (int) (a.getResources().getDisplayMetrics().widthPixels * 1.0f));
-                content.addView(hero(heroItem), new LinearLayout.LayoutParams(-1, h));
+                content.addView(hero(heroItem), new LinearLayout.LayoutParams(-1, Ui.dp(a, 175)));
             }
 
             addRow("Weiter schauen", resume, true, null);
@@ -214,7 +217,7 @@ final class HomeScreen extends Screen {
             Ui.Btn rnd = Ui.button(a, "shuffle", "Überrasch mich", false);
             rnd.setOnClickListener(v -> a.bg(() -> a.jf.randomMovie(), it -> { if (it != null) a.openItem(it); }));
             LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-2, -2);
-            rl.setMargins(Ui.dp(a, 16), Ui.dp(a, 18), 0, 0);
+            rl.setMargins(Ui.dp(a, Ui.PAD), Ui.dp(a, 16), 0, 0);
             content.addView(rnd, rl);
 
             for (int i = 0; i < views.size(); i++) {
@@ -223,7 +226,7 @@ final class HomeScreen extends Screen {
             }
             if (resume.isEmpty() && views.isEmpty()) {
                 TextView t = Ui.text(a, "Keine Inhalte gefunden.", 15, Ui.MUTED, false);
-                t.setPadding(Ui.dp(a, 16), Ui.dp(a, 24), 0, 0);
+                t.setPadding(Ui.dp(a, Ui.PAD), Ui.dp(a, 24), 0, 0);
                 content.addView(t);
             }
         });

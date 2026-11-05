@@ -39,11 +39,11 @@ abstract class GridScreen extends Screen {
 
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(Ui.dp(a, 8), Ui.dp(a, 4), Ui.dp(a, 16), Ui.dp(a, 4));
-        android.widget.ImageView back = Ui.iconButton(a, "back", 44, false);
+        bar.setPadding(Ui.dp(a, Ui.PAD - 6), Ui.dp(a, 12), Ui.dp(a, Ui.PAD), Ui.dp(a, 6));
+        android.widget.ImageView back = Ui.iconButton(a, "back", Ui.ICON, false);
         back.setOnClickListener(v -> a.pop());
         bar.addView(back);
-        TextView t = Ui.text(a, title, 22, Ui.TEXT, true);
+        TextView t = Ui.text(a, title, 20, Ui.TEXT, true);
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
@@ -52,12 +52,11 @@ abstract class GridScreen extends Screen {
         View h = header();
         if (h != null) page.addView(h, new LinearLayout.LayoutParams(-1, -2));
 
-        int wdp = (int) (a.getResources().getDisplayMetrics().widthPixels / a.getResources().getDisplayMetrics().density);
-        int cols = Math.max(3, wdp / 125);
+        int cols = 7;
         RecyclerView rv = new RecyclerView(a);
         GridLayoutManager lm = new GridLayoutManager(a, cols);
         rv.setLayoutManager(lm);
-        rv.setPadding(Ui.dp(a, 7), 0, Ui.dp(a, 7), Ui.dp(a, 16));
+        rv.setPadding(Ui.dp(a, Ui.PAD - 5), Ui.dp(a, 6), Ui.dp(a, Ui.PAD - 5), Ui.dp(a, 16));
         rv.setClipToPadding(false);
         adapter = new Cards.Adapter(a, false, 0);
         adapter.onChanged = this::reload;

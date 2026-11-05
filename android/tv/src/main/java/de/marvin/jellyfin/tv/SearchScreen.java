@@ -41,7 +41,7 @@ final class SearchScreen extends GridScreen {
             }
         });
         LinearLayout w = new LinearLayout(a);
-        w.setPadding(Ui.dp(a, 12), 0, Ui.dp(a, 12), Ui.dp(a, 8));
+        w.setPadding(Ui.dp(a, Ui.PAD), 0, Ui.dp(a, Ui.PAD), Ui.dp(a, 8));
         w.addView(box, new LinearLayout.LayoutParams(-1, -2));
         return w;
     }
