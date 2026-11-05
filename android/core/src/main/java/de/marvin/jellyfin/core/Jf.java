@@ -162,8 +162,11 @@ public final class Jf {
 
     // ------------------------------------------------------------ HTTP
 
+    /** Name, unter dem sich dieser Client beim Server meldet (die TV-App setzt "Jellyfin TV"). */
+    public static volatile String clientName = "Jellyfin Mobile";
+
     private String authHeader() {
-        return "MediaBrowser Client=\"Jellyfin Mobile\", Device=\"" + android.os.Build.MODEL.replace('"', ' ') + "\", DeviceId=\"" + deviceId
+        return "MediaBrowser Client=\"" + clientName + "\", Device=\"" + android.os.Build.MODEL.replace('"', ' ') + "\", DeviceId=\"" + deviceId
                 + "\", Version=\"1.0\"" + (token != null ? ", Token=\"" + token + "\"" : "");
     }
 
@@ -224,6 +227,18 @@ public final class Jf {
     }
 
     public String deviceId() { return deviceId; }
+
+    /** Meldet beim Server, dass dieser Client ferngesteuert werden kann (erscheint dann in der Fernsteuerung der Handy-App). */
+    public void registerCapabilities(String... commands) throws Exception {
+        JSONObject o = new JSONObject();
+        o.put("PlayableMediaTypes", new JSONArray().put("Video").put("Audio"));
+        JSONArray c = new JSONArray();
+        for (String x : commands) c.put(x);
+        o.put("SupportedCommands", c);
+        o.put("SupportsMediaControl", true);
+        o.put("SupportsPersistentIdentifier", true);
+        request("POST", "/Sessions/Capabilities/Full", o.toString());
+    }
 
     /** Alle Geraete, die der angemeldete Benutzer steuern kann (ohne dieses Handy). */
     public java.util.ArrayList<RemoteSession> remoteSessions() throws Exception {

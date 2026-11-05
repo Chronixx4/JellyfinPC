@@ -1,0 +1,51 @@
+plugins { id 'com.android.application' }
+
+// Version und Build-Nummer kommen aus derselben Datei wie bei der Windows-App,
+// damit EXE und APK im Release immer zusammenpassen.
+def props = new Properties()
+file('../../src/main/resources/app.properties').withInputStream { props.load(it) }
+
+android {
+    namespace 'de.marvin.jellyfin.tv'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'de.marvin.jellyfin.tv'
+        minSdk 24
+        targetSdk 34
+        versionCode props.getProperty('build').trim().toInteger()
+        versionName props.getProperty('version').trim()
+    }
+    signingConfigs {
+        // Feste Signatur, damit sich die APK spaeter ueber sich selbst aktualisieren laesst.
+        release {
+            storeFile file('../jellyfin-release.keystore')
+            storePassword 'jellyfin'
+            keyAlias 'jellyfin'
+            keyPassword 'jellyfin'
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+        debug { signingConfig signingConfigs.release }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets { main { assets.srcDirs += ['../../shared'] } }
+    lint { abortOnError false }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    implementation project(':core')
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.4.1'
+    implementation 'androidx.media3:media3-ui:1.4.1'
+
+}
