@@ -4,7 +4,7 @@
     "version": "2.9",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.9/JellyfinPC.exe",
     "md5": "68d53e385f4412be35c52c5af40eba14",
-    "notes": "Windows-App unverändert; neue Handy-App-Version 2.9 erscheint gleichzeitig."
+    "notes": "Alle Emojis durch dieselben Icons wie in der Handy-App ersetzt."
   },
   "tv": {
     "build": 0,
@@ -18,6 +18,6 @@
     "version": "2.9",
     "url": "https://github.com/Chronixx4/JellyfinPC/releases/download/v2.9/JellyfinMobile.apk",
     "md5": "d1e6c7569d8a3597a5c363c3325892eb",
-    "notes": "Neues Design wie die PC-App (Banner, Reiter, Farbverlauf) und echte Icons statt Emojis."
+    "notes": "Gleiche Funktionen wie die PC-App: Statistik, Listen/Sammlungen, Downloads, Trailer, Abspann überspringen, Schlaf-Timer, Profil-PIN. Gemeinsame Icons."
   }
 }

@@ -67,7 +67,8 @@ public class PlayerActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private JfItem item, nextItem;
-    private long introEndMs;
+    private long introEndMs, outroStartMs, outroEndMs;
+    private String localFile;
     private boolean transcoding, started, lockedControls, reportedStop, switching;
     private long lastReport;
 
@@ -76,7 +77,7 @@ public class PlayerActivity extends Activity {
     private TextView titleView, posView, durView, feedbackText;
     private LinearLayout feedback;
     private ImageView feedbackIcon, playPause, lockBtn;
-    private View skipIntro, nextBtn;
+    private View skipIntro, nextBtn, outroBtn;
     private SeekBar seek;
     private boolean controlsVisible, scrubbing;
 
@@ -90,10 +91,12 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Icons.init(this);
         jf = Jf.get(this);
         audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         buildUi();
+        localFile = getIntent().getStringExtra("file");
         load(getIntent().getStringExtra("id"), getIntent().getLongExtra("start", 0));
     }
 
@@ -218,6 +221,9 @@ public class PlayerActivity extends Activity {
         ImageView tracks = sym("subtitles", 52);
         tracks.setOnClickListener(v -> trackDialog());
         top.addView(tracks);
+        ImageView sleep = sym("sleep", 52);
+        sleep.setOnClickListener(v -> sleepDialog());
+        top.addView(sleep);
         ImageView chap = sym("list", 52);
         chap.setOnClickListener(v -> chapterDialog());
         top.addView(chap);
@@ -294,6 +300,17 @@ public class PlayerActivity extends Activity {
         sl.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
         root.addView(skipIntro, sl);
 
+        outroBtn = Ui.button(this, "next", "Abspann überspringen", false);
+        outroBtn.setBackground(Ui.outlined(this, 0xE60A0D12, 0x55FFFFFF, 26));
+        outroBtn.setVisibility(View.GONE);
+        outroBtn.setOnClickListener(v -> {
+            if (nextItem != null) playNext();
+            else if (player != null && outroEndMs > 0) player.seekTo(Math.min(outroEndMs, Math.max(duration() - 500, 0)));
+        });
+        FrameLayout.LayoutParams ol = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+        ol.setMargins(0, 0, Ui.dp(this, 24), Ui.dp(this, 80));
+        root.addView(outroBtn, ol);
+
         nextBtn = Ui.button(this, "next", "Nächste Folge", true);
         nextBtn.setVisibility(View.GONE);
         nextBtn.setOnClickListener(v -> playNext());
@@ -322,10 +339,12 @@ public class PlayerActivity extends Activity {
     private void load(String id, long startTicks) {
         io.execute(() -> {
             try {
-                JfItem full = jf.item(id);
-                long intro = jf.introEnd(full);
+                final boolean offline = localFile != null;
+                JfItem full = offline ? JfItem.from(new JSONObject(getIntent().getStringExtra("json"))) : jf.item(id);
+                long intro = offline ? 0 : jf.introEnd(full);
+                long[] outro = offline ? null : jf.outro(full);
                 JfItem nx = null;
-                if ("Episode".equals(full.type)) {
+                if (!offline && "Episode".equals(full.type)) {
                     try { nx = jf.nextEpisode(full); } catch (Exception ignored) { }
                 }
                 final JfItem n = nx;
@@ -334,6 +353,8 @@ public class PlayerActivity extends Activity {
                     item = full;
                     nextItem = n;
                     introEndMs = intro / TICKS_PER_MS;
+                    outroStartMs = outro != null ? outro[0] / TICKS_PER_MS : 0;
+                    outroEndMs = outro != null ? outro[1] / TICKS_PER_MS : 0;
                     transcoding = getSharedPreferences("app", MODE_PRIVATE).getBoolean("alwaysTranscode", false);
                     titleView.setText(full.title().equals(full.name) ? full.name
                             : (full.seriesName.isEmpty() ? "" : full.seriesName + " – ") + full.title());
@@ -364,8 +385,9 @@ public class PlayerActivity extends Activity {
             h.post(tick);
         }
         reportedStop = false;
-        MediaItem.Builder mb = new MediaItem.Builder().setUri(transcoding ? jf.playUrl(item) : jf.directUrl(item));
-        if (!transcoding) mb.setSubtitleConfigurations(externalSubs(item));
+        MediaItem.Builder mb = new MediaItem.Builder().setUri(localFile != null ? Uri.fromFile(new java.io.File(localFile))
+                : Uri.parse(transcoding ? jf.playUrl(item) : jf.directUrl(item)));
+        if (!transcoding && localFile == null) mb.setSubtitleConfigurations(externalSubs(item));
         player.setMediaItem(mb.build(), startMs);
         player.prepare();
         player.setPlayWhenReady(true);
@@ -398,7 +420,7 @@ public class PlayerActivity extends Activity {
     }
 
     private void onError(PlaybackException e) {
-        if (!transcoding && item != null) {
+        if (!transcoding && item != null && localFile == null) {
             // Direktwiedergabe geht nicht (z. B. Ton wie DTS/TrueHD): Server wandelt um
             long pos = player.getCurrentPosition();
             transcoding = true;
@@ -461,7 +483,9 @@ public class PlayerActivity extends Activity {
                 durView.setText(fmt(dur));
                 boolean inIntro = introEndMs > 0 && pos < introEndMs && pos > 2000 && introEndMs < dur;
                 skipIntro.setVisibility(inIntro && !switching ? View.VISIBLE : View.GONE);
-                boolean nearEnd = nextItem != null && dur > 0 && dur - pos < 25000 && pos > 60000;
+                boolean inOutro = outroEndMs > outroStartMs && pos >= outroStartMs && pos < outroEndMs && !switching;
+                outroBtn.setVisibility(inOutro ? View.VISIBLE : View.GONE);
+                boolean nearEnd = nextItem != null && dur > 0 && dur - pos < 25000 && pos > 60000 && !inOutro;
                 nextBtn.setVisibility(nearEnd ? View.VISIBLE : View.GONE);
                 if (!started && player.getPlaybackState() == Player.STATE_READY) {
                     started = true;
@@ -575,6 +599,24 @@ public class PlayerActivity extends Activity {
         new AlertDialog.Builder(this).setTitle("Geschwindigkeit").setItems(n, (d, i) -> {
             player.setPlaybackParameters(new PlaybackParameters(v[i]));
             label.setText(v[i] == 1f ? "1×" : v[i] + "×");
+        }).show();
+    }
+
+    private final Runnable sleepRun = () -> {
+        if (player != null) player.pause();
+        Toast.makeText(this, "Schlaf-Timer: Wiedergabe angehalten", Toast.LENGTH_LONG).show();
+    };
+
+    private void sleepDialog() {
+        final int[] min = {0, 15, 30, 45, 60, 90};
+        String[] n = new String[min.length];
+        for (int i = 0; i < min.length; i++) n[i] = min[i] == 0 ? "Aus" : min[i] + " Minuten";
+        new AlertDialog.Builder(this).setTitle("Schlaf-Timer").setItems(n, (d, i) -> {
+            h.removeCallbacks(sleepRun);
+            if (min[i] > 0) {
+                h.postDelayed(sleepRun, min[i] * 60000L);
+                flash("sleep", "Pause in " + min[i] + " Min");
+            } else flash("sleep", "Timer aus");
         }).show();
     }
 

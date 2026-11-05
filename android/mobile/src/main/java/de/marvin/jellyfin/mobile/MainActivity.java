@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Icons.init(this);
         jf = Jf.get(this);
         prefs = getSharedPreferences("app", MODE_PRIVATE);
         JfItem.hideShort = prefs.getBoolean("hideShort", true);
@@ -107,6 +108,8 @@ public class MainActivity extends Activity {
 
     void openItem(JfItem it) {
         if (it == null) return;
+        if ("Playlist".equals(it.type)) { push(new ListScreen(this, it.name, (j, s) -> j.playlistItems(it.id, s, GridScreen.PAGE))); return; }
+        if ("BoxSet".equals(it.type)) { push(new ListScreen(this, it.name, (j, s) -> j.children(it.id, s, GridScreen.PAGE, "SortName", "Ascending"))); return; }
         if (it.collectionType != null && !it.collectionType.isEmpty() || "CollectionFolder".equals(it.type)
                 || "UserView".equals(it.type)) push(new LibraryScreen(this, it));
         else push(new DetailScreen(this, it));
